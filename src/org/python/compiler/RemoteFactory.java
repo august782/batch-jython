@@ -120,7 +120,7 @@ public class RemoteFactory extends PartitionFactoryHelper<PythonTree> {
         if (value instanceof java.util.List) {
             java.util.List<expr> elts = new java.util.ArrayList<expr>();
             for (Object o : (java.util.List)value) {
-                expr elt = ((Expr)((PExpr)o).runExtra(this)).getInternalValue();
+                expr elt = ((expr)((PExpr)o).runExtra(this));
                 elts.add(elt);
             }
             args.add(new List(new AstList(elts, AstAdapters.exprAdapter), AstAdapters.expr_context2py(expr_contextType.Load)));
@@ -222,7 +222,9 @@ public class RemoteFactory extends PartitionFactoryHelper<PythonTree> {
         return Call(target, method, args);
     }
     
-    public PythonTree Skip() {return null;}
+    public PythonTree Skip() {
+        return gen("Skip", new java.util.ArrayList<expr>());
+    }
     
 	public PythonTree Other(Object external, PythonTree... subs) {
         return Other(external, subs);
