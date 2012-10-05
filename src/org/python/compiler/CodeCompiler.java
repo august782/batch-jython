@@ -1509,16 +1509,23 @@ public class CodeCompiler extends Visitor implements Opcodes, ClassConstants {
         */
         //return visit(seq.runExtra(new ConvertFactory()).getTree());
         //Call c = (Call)(local.runExtra(new ConvertFactory()).getTree());
+        java.util.List<stmt> new_body = new java.util.ArrayList<stmt>();
         if (first_local != null) {
+            System.out.println("First local");
             visit(first_local.runExtra(new ConvertFactory()));
         }
         // For remote, make a call to the service object
         java.util.List<expr> args = new java.util.ArrayList<expr>();
         args.add((expr)remote_expr.runExtra(new RemoteFactory(service)));
         if (remote_expr != null) {
-            visit(new Call(new Attribute(service, new PyString("execute"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None));
+            System.out.println("Remote");
+            //visit(new Call(new Attribute(service, new PyString("execute"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None));
+            java.util.List<expr> targets = new java.util.ArrayList<expr>();
+            targets.add(new Name(new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Store)));
+            visit(new Assign(new AstList(targets, AstAdapters.exprAdapter), new Call(new Attribute(service, new PyString("execute"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None)));
         }
         if (second_local != null) {
+            System.out.println("Second local");
             visit(second_local.runExtra(new ConvertFactory()));
         }
         //suite(node.getInternalBody());

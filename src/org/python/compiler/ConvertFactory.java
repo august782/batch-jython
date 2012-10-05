@@ -248,7 +248,13 @@ public class ConvertFactory extends PartitionFactoryHelper<PythonTree> {
         return new Expr(new Call(func, new AstList(expr_args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None)); // No such thing as keywords, starargs, or kwargs in batch language
     }
     
-    public PythonTree In(String location) {return null;}
+    public PythonTree In(String location) {
+        // For In, just access the generic dictionary name
+            Attribute dict = new Attribute(new Name(new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load));
+            java.util.List<expr> args = new java.util.ArrayList<expr>();
+            args.add(new Str(new PyString(location)));
+        return new Expr(new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None));
+    }
     
     public PythonTree Out(String location, PythonTree expression) {return null;}
     

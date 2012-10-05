@@ -204,7 +204,12 @@ public class RemoteFactory extends PartitionFactoryHelper<PythonTree> {
     
     public PythonTree In(String location) {return null;}
     
-    public PythonTree Out(String location, PythonTree expression) {return null;}
+    public PythonTree Out(String location, PythonTree expression) {
+        java.util.List<expr> args = new java.util.ArrayList<expr>();
+        args.add(new Str(new PyString(location)));
+        args.add((expr)expression);
+        return gen("Out", args);
+    }
     
     public String RootName() {return null;}
     
