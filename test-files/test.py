@@ -5,10 +5,10 @@ f = BatchRemote()
 mybatch ROOT in f :
     x = 2
     x = ROOT.foo()
+    print x
     x + 2
     3
     print "Batch"
-    print f.Data(5)
     while x :
         print "While"
         break
@@ -20,7 +20,4 @@ mybatch ROOT in f :
         print "hello"
     else :
         print "bye"
-    
-    print x
-
 print "Hello World"

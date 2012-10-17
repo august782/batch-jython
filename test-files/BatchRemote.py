@@ -8,7 +8,7 @@ class BatchRemote :
        self.PORT = 9825
        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
-    def execute(self, expr) :
+    def execute(self, expr, forest) :
         try :
             self.sock.connect((self.HOST, self.PORT))
             self.sock.send(expr + "\n")
