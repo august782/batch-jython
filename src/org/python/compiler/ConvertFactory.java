@@ -116,6 +116,13 @@ public class ConvertFactory extends PartitionFactoryHelper<PythonTree> {
         //operators.put(operatorType.FloorDiv, "//");
     }
     
+    private String forest;
+    
+    public ConvertFactory(String forest) {
+        super();
+        this.forest = forest;
+    }
+    
     public PythonTree Var(String name) {
         // Set the variable to be load context at first, have others change later ??
         // Wrap everything into Expr statement ype, to be consistent
@@ -249,14 +256,25 @@ public class ConvertFactory extends PartitionFactoryHelper<PythonTree> {
     }
     
     public PythonTree In(String location) {
-        // For In, just access the generic dictionary name
-            Attribute dict = new Attribute(new Name(new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load));
-            java.util.List<expr> args = new java.util.ArrayList<expr>();
-            args.add(new Str(new PyString(location)));
+        // For In, just access the given dictionary name
+        Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load));
+        java.util.List<expr> args = new java.util.ArrayList<expr>();
+        args.add(new Str(new PyString(location)));
         return new Expr(new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None));
     }
     
-    public PythonTree Out(String location, PythonTree expression) {return null;}
+    public PythonTree Out(String location, PythonTree expression) {
+        // For Out, store into given dictionary name
+        Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("update"), AstAdapters.expr_context2py(expr_contextType.Load));
+        java.util.List<expr> args = new java.util.ArrayList<expr>();
+        java.util.List<expr> keys = new java.util.ArrayList<expr>();
+        keys.add(new Str(new PyString(location)));
+        java.util.List<expr> values = new java.util.ArrayList<expr>();
+        values.add(((Expr)expression).getInternalValue());  // Stored value is assumed to be Expr
+        Dict temp_dict = new Dict(new AstList(keys, AstAdapters.exprAdapter), new AstList(values, AstAdapters.exprAdapter));
+        args.add(temp_dict);
+        return new Expr(new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None));
+    }
     
     public String RootName() {return null;}
     
