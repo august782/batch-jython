@@ -1503,13 +1503,13 @@ public class CodeCompiler extends Visitor implements Opcodes, ClassConstants {
             targets.add(new Name(new PyString(remote), AstAdapters.expr_context2py(expr_contextType.Store)));
             visit(new Assign(new AstList(targets, AstAdapters.exprAdapter), new Dict(new AstList(new java.util.ArrayList<expr>(), AstAdapters.exprAdapter), new AstList(new java.util.ArrayList<expr>(), AstAdapters.exprAdapter))));
             // Now visit the pre-local
-            visit(first_local.runExtra(new ConvertFactory(remote)));
+            visit(first_local.runExtra(new ConvertFactory(remote, service)).generateMod());
         }
         if (remote_expr != null) {
             System.out.println("Remote");
             // For remote, make a call to the service object
             java.util.List<expr> args = new java.util.ArrayList<expr>();
-            args.add((expr)remote_expr.runExtra(new RemoteFactory(service)));
+            args.add(remote_expr.runExtra(new ConvertFactory(remote, service)).generateRemote());
             args.add(new Name(new PyString(remote), AstAdapters.expr_context2py(expr_contextType.Load)));
             java.util.List<expr> targets = new java.util.ArrayList<expr>();
             targets.add(new Name(new PyString(remote), AstAdapters.expr_context2py(expr_contextType.Store)));
@@ -1518,7 +1518,7 @@ public class CodeCompiler extends Visitor implements Opcodes, ClassConstants {
         if (second_local != null) {
             System.out.println("Second local");
             // Now visit the post-local
-            visit(second_local.runExtra(new ConvertFactory(remote)));
+            visit(second_local.runExtra(new ConvertFactory(remote, service)).generateMod());
         }
         return null;
     }

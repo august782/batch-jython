@@ -108,20 +108,29 @@ import batch.Op;
 
 public class ConvertOther extends Visitor {
     
-    private java.util.List<PythonTree> subs;
-    private PartitionFactoryHelper<PythonTree> helper;
+    private java.util.List<Generator> subs;
+    private PartitionFactoryHelper<Generator> helper;
     
-    public ConvertOther(java.util.List<PythonTree> subs, PartitionFactoryHelper<PythonTree> helper) {
+    public ConvertOther(java.util.List<Generator> subs, PartitionFactoryHelper<Generator> helper) {
         this.subs = subs;
         this.helper = helper;
     }
     
+    // Helper functions
+    private mod makeMod(stmt s) {
+        // Make mod by wrapping inside suite ??
+        java.util.List<stmt> body = new java.util.ArrayList<stmt>();
+        body.add(s);
+        return  new Suite(new AstList(body, AstAdapters.stmtAdapter));
+    }
+    // End helper functions
+    
     @Override
-    public Object visitPrint(Print node) {
-        expr dest = ((Expr)subs.get(0)).getInternalValue();
-        java.util.List<expr> values = ((List)((Expr)subs.get(1)).getInternalValue()).getInternalElts();
+    public Object visitPrint(final Print node) {
+        expr dest = subs.get(0).generateExpr();
+        java.util.List<expr> values = ((List)(subs.get(1)).generateExpr()).getInternalElts();
         // Fake as integer
-        Integer temp_nl = new Integer(((PyInteger)((Num)((Expr)subs.get(2)).getInternalValue()).getInternalN()).getValue());
+        Integer temp_nl = new Integer(((PyInteger)((Num)(subs.get(2)).generateExpr()).getInternalN()).getValue());
         PyObject nl;
         if (temp_nl == 1) {
             nl = Py.True; 
@@ -132,54 +141,147 @@ public class ConvertOther extends Visitor {
         node.setDest(dest);
         node.setValues(new AstList(values, AstAdapters.exprAdapter));
         node.setNl(nl); // Seems to need real Boolean...
-        return node;
+        
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Print
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };
     }
     
     @Override
-    public Object visitDelete(Delete node) {
-        java.util.List<expr> targets = ((List)(((Expr)subs.get(0))).getInternalValue()).getInternalElts();
+    public Object visitDelete(final Delete node) {
+        java.util.List<expr> targets = ((List)(subs.get(0).generateExpr())).getInternalElts();
         node.setTargets(new AstList(targets, AstAdapters.exprAdapter));
-        return node;
+        
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Delete
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };
     }
     
     @Override
-    public Object visitPass(Pass node) {
-        return node;
+    public Object visitPass(final Pass node) {
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Pass
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };
     }
     
     @Override
-    public Object visitBreak(Break node) {
-        return node;
+    public Object visitBreak(final Break node) {
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Break
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };
     }
     
     @Override
-    public Object visitYield(Yield node) {
-        expr value = ((Expr)subs.get(0)).getInternalValue();
+    public Object visitYield(final Yield node) {
+        expr value = subs.get(0).generateExpr();
         node.setValue(value);
-        return node;
+        
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(node);
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };
     }
     
     @Override
-    public Object visitWhile(While node) {
-        expr test = ((Expr)subs.get(0)).getInternalValue();
-        // Both body and orelse will end up in Suite or one stmt
-        java.util.List<stmt> body = new java.util.ArrayList<stmt>();
-        if (subs.get(1) instanceof Suite) {
-            body = ((Suite)subs.get(1)).getInternalBody();
-        }
-        else {
-            body.add((stmt)subs.get(1));
-        }
-        java.util.List<stmt> orelse = new java.util.ArrayList<stmt>();
-        if (subs.get(2) instanceof Suite) {
-            orelse = ((Suite)subs.get(2)).getInternalBody();
-        }
-        else {
-            orelse.add((stmt)subs.get(2));
-        }
+    public Object visitWhile(final While node) {
+        expr test = subs.get(0).generateExpr();
+        java.util.List<stmt> body = ((Suite)subs.get(1).generateMod()).getInternalBody();
+        java.util.List<stmt> orelse = ((Suite)subs.get(2).generateMod()).getInternalBody();
         node.setTest(test);
         node.setBody(new AstList(body, AstAdapters.stmtAdapter));
         node.setOrelse(new AstList(orelse, AstAdapters.stmtAdapter));
-        return node;
+        
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for While
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };
     }
 }
