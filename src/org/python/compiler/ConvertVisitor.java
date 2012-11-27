@@ -10,6 +10,9 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
+import org.python.antlr.adapter.AstAdapters;
+import org.python.core.AstList;
+
 import org.python.antlr.ParseException;
 import org.python.antlr.PythonTree;
 import org.python.antlr.Visitor;
@@ -142,15 +145,23 @@ public class ConvertVisitor extends Visitor {
         CodeModel.factory.allowAllTransers = true;
     }
     
+    private java.util.List<String> locals;
+
+    public ConvertVisitor(java.util.List<String> locals) {
+        super();
+        this.locals = locals;
+    }
+    
     public Object visitAll(java.util.List<stmt> body) throws Exception {
         // Check if there's nothing left
         if (body.isEmpty()) {
             //System.out.println("It's empty body?");
             return ConvertVisitor.f.Prim(Op.SEQ, new java.util.ArrayList<PExpr>());
         }
+        /*
         if (body.size() == 1) {
             return visit(body.get(0));
-        }
+        }*/
         
         // Slowly visit each stmt and add to a list for SEQ
         java.util.List<PExpr> seqlist = new java.util.ArrayList<PExpr>();
@@ -164,18 +175,36 @@ public class ConvertVisitor extends Visitor {
             }
             return ConvertVisitor.f.Prim(Op.SEQ, seqlist);
         } catch (LetAssignException e) { // Let is special case, an exception
-            java.util.List<String> vars = e.getVars();
-            PExpr value = e.getValue();
-            PExpr let = ConvertVisitor.f.Let(vars.remove(0), value, (PExpr)visitAll(body));
-            while (!vars.isEmpty()) {
-                let = ConvertVisitor.f.Let(vars.remove(0), value, let);
+            java.util.List<expr> vars = e.getVars();
+            expr value = e.getValue();
+            // First look for non-locals
+            java.util.List<expr> removeable = new java.util.ArrayList<expr>();
+            for (expr var : vars) {
+                if (!locals.contains(((PExpr)(visit(var))).toString())) {
+                    seqlist.add(ConvertVisitor.f.Assign((PExpr)visit(var), (PExpr)visit(value)));
+                    removeable.add(var);
+                }
             }
-            // Only add to seqlist if there was something there before
-            if (seqlist.isEmpty()) {
-                return let;
+            vars.removeAll(removeable);
+            // Of the remaining locals, make one of them the Let variable, then prepend rest to body
+            if (!vars.isEmpty()) {
+                String var = ((PExpr)(visit(vars.remove(0)))).toString();
+                locals.remove(var); // Make sure only bind Let once
+                if (!vars.isEmpty()) {
+                    body.add(0, new Assign(new AstList(vars, AstAdapters.exprAdapter), value));  // Prepend rest as an Assign
+                }
+                PExpr let = ConvertVisitor.f.Let(var, (PExpr)visit(value), (PExpr)visitAll(body));
+                if (seqlist.isEmpty())  {
+                    return let;
+                }
+                else {
+                    seqlist.add(let);
+                    return ConvertVisitor.f.Prim(Op.SEQ, seqlist);
+                }
             }
+            // In case it was just a non-local variable, proceed with rest of body
             else {
-                seqlist.add(let);
+                seqlist.add((PExpr)visitAll(body));
                 return ConvertVisitor.f.Prim(Op.SEQ, seqlist);
             }
         }
@@ -191,11 +220,7 @@ public class ConvertVisitor extends Visitor {
     public Object visitAssign(Assign node) throws Exception {
         java.util.List<expr> targets = node.getInternalTargets();
         expr value = node.getInternalValue();
-        ArrayList<String> vars = new ArrayList<String>();
-        for (expr e : targets) {
-            vars.add(((PExpr)(visit(e))).toString());
-        }
-        throw new LetAssignException(vars, (PExpr)visit(value));  // Throw an exception...
+        throw new LetAssignException(targets, value);  // Throw an exception...
     }
     
     @Override
@@ -315,7 +340,7 @@ public class ConvertVisitor extends Visitor {
         
         PExpr leftExpr = (PExpr)(visit(left));
         PExpr rightExpr = (PExpr)(visit(right));
-        ArrayList<PExpr> args = new ArrayList<PExpr>();
+        java.util.List<PExpr> args = new java.util.ArrayList<PExpr>();
         args.add(leftExpr);
         args.add(rightExpr);
         return ConvertVisitor.f.Prim(ConvertVisitor.operators.get(op), args);
@@ -326,7 +351,10 @@ public class ConvertVisitor extends Visitor {
         expr target = node.getInternalTarget();
         operatorType op = node.getInternalOp();
         expr value = node.getInternalValue();
-        return ConvertVisitor.f.Assign((PExpr)visit(target), (PExpr)visit(value));
+        java.util.List<PExpr> args = new java.util.ArrayList<PExpr>();
+        args.add((PExpr)visit(target));
+        args.add((PExpr)visit(value));
+        return ConvertVisitor.f.Assign((PExpr)visit(target), ConvertVisitor.f.Prim(ConvertVisitor.operators.get(op), args));
     }
     
     @Override

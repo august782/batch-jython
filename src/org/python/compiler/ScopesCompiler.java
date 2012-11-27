@@ -25,6 +25,8 @@ import org.python.antlr.base.expr;
 import org.python.antlr.base.stmt;
 import org.python.core.ParserFacade;
 
+import org.python.antlr.ast.Batch;
+
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Stack;
@@ -352,6 +354,24 @@ public class ScopesCompiler extends Visitor implements ScopeConstants {
         cur.max_with_count++;
         traverse(node);
 
+        return null;
+    }
+    
+    @Override
+    public Object visitBatch(Batch node) throws Exception {
+        beginScope(null, BATCHSCOPE, node, null);
+        suite(node.getInternalBody());
+        endScope();
+        /*
+        ScopeInfo batchScope = nodeScopes.get(node);
+        for (String k : batchScope.tbl.keySet()) {
+            if (!cur.tbl.containsKey(k)) {  // If does not exist in upper, must have just been added, so is local
+                node.addToLocals(k);
+            }
+        }
+        suite(node.getInternalBody());
+        */
+        
         return null;
     }
 

@@ -296,12 +296,28 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             }
             
             public stmt generateStmt() {
-                return new AugAssign(target.generateExpr(), AstAdapters.operator2py(operators.get(op)), source.generateExpr());
+                if (op == null) {
+                    java.util.List<expr> targets = new java.util.ArrayList<expr>();
+                    targets.add(target.generateExpr());
+                    if (targets.get(0) instanceof Name) {   // For now, assume only Name possible, need to change to store mode
+                        Name n = (Name)targets.get(0);
+                        n.setCtx(AstAdapters.expr_context2py(expr_contextType.Store));
+                    }
+                    return new Assign(new AstList(targets, AstAdapters.exprAdapter), source.generateExpr());
+                }
+                else {
+                    return new AugAssign(target.generateExpr(), AstAdapters.operator2py(operators.get(op)), source.generateExpr());
+                }
             }
             
             public expr generateRemote() {
                 java.util.List<expr> args = new java.util.ArrayList<expr>();
-                args.add(new Str(new PyString(op.toString())));
+                if (op == null) {
+                    args.add(new Str(new PyString("")));
+                }
+                else {
+                    args.add(new Str(new PyString(op.toString())));
+                }
                 args.add(target.generateRemote());
                 args.add(source.generateRemote());
                 

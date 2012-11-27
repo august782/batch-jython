@@ -1454,9 +1454,21 @@ public class CodeCompiler extends Visitor implements Opcodes, ClassConstants {
         java.util.List<stmt> body = node.getInternalBody();
         String remote = node.getInternalRemote();
         expr service = node.getInternalService();
-        ConvertVisitor visitor = new ConvertVisitor();
-        PExpr seq = (PExpr)(visitor.visitAll(body));
         System.out.println(tbl);
+        
+        // Scope hacking...
+        ScopeInfo scope = module.getScopeInfo(node);
+        System.out.println(scope.tbl);
+        //java.util.List<String> locals = node.getLocals();
+        java.util.List<String> locals = new java.util.ArrayList<String>();
+        for (String k : scope.tbl.keySet()) {
+            if (!tbl.containsKey(k)) {  // Is local if outer scope does not contain it
+                locals.add(k);
+            }
+        }
+        System.out.println(locals);
+        ConvertVisitor visitor = new ConvertVisitor(locals);
+        PExpr seq = (PExpr)(visitor.visitAll(body));
         
         PExpr first_local = null;
         PExpr remote_expr = null;
@@ -1505,12 +1517,18 @@ public class CodeCompiler extends Visitor implements Opcodes, ClassConstants {
             // Now visit the pre-local
             visit(first_local.runExtra(new ConvertFactory(remote, service)).generateMod());
         }
+        else {
+            java.util.List<expr> targets = new java.util.ArrayList<expr>();
+            targets.add(new Name(new PyString(remote), AstAdapters.expr_context2py(expr_contextType.Store)));
+            visit(new Assign(new AstList(targets, AstAdapters.exprAdapter), new Dict(new AstList(new java.util.ArrayList<expr>(), AstAdapters.exprAdapter), new AstList(new java.util.ArrayList<expr>(), AstAdapters.exprAdapter))));
+        }
         if (remote_expr != null) {
             System.out.println("Remote");
             // For remote, make a call to the service object
             java.util.List<expr> args = new java.util.ArrayList<expr>();
             args.add(remote_expr.runExtra(new ConvertFactory(remote, service)).generateRemote());
             args.add(new Name(new PyString(remote), AstAdapters.expr_context2py(expr_contextType.Load)));
+            //scope.tbl.get(remote).flags |= scope.BOUND;
             java.util.List<expr> targets = new java.util.ArrayList<expr>();
             targets.add(new Name(new PyString(remote), AstAdapters.expr_context2py(expr_contextType.Store)));
             visit(new Assign(new AstList(targets, AstAdapters.exprAdapter), new Call(new Attribute(service, new PyString("execute"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None)));
