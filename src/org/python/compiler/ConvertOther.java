@@ -126,6 +126,31 @@ public class ConvertOther extends Visitor {
     // End helper functions
     
     @Override
+    public Object visitCall(final Call node) {
+        java.util.List<expr> args = ((List)(subs.get(0).generateExpr())).getInternalElts();
+        node.setArgs(new AstList(args, AstAdapters.exprAdapter));
+        
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };
+    }
+    
+    @Override
     public Object visitPrint(final Print node) {
         expr dest = subs.get(0).generateExpr();
         java.util.List<expr> values = ((List)(subs.get(1)).generateExpr()).getInternalElts();

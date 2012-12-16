@@ -1481,8 +1481,8 @@ public class CodeCompiler extends Visitor implements Opcodes, ClassConstants {
             Environment env = new Environment(CodeModel.factory);
             env = env.extend(remote, null, Place.REMOTE);
             History h = seq.partition(Place.MOBILE, env);
+            //History h = seq.partition(Place.LOCAL, env);
             System.out.println(h.toString());
-            //System.out.println(seq.toString());
             // Assume three stage, at most LOCAL -> REMOTE -> LOCAL
             if (h.length() == 1) {
                 if (h.get(0).place().toString().equals("LOCAL")) {

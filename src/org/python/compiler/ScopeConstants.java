@@ -14,5 +14,7 @@ public interface ScopeConstants {
     public final static int TOPSCOPE = 0;
     public final static int FUNCSCOPE = 1;
     public final static int CLASSSCOPE = 2;
+    
+    public final static int BATCHSCOPE = 98;
 
 }

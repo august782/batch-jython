@@ -373,7 +373,16 @@ public class ConvertVisitor extends Visitor {
             
             return ConvertVisitor.f.Call(target, method, expr_args);
         }
-        return null;    // Place holder for now...
+        // Case of local function, wrap into Other node
+        else {
+            java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+            java.util.List<PExpr> sub_args = new java.util.ArrayList<PExpr>();
+            for (expr arg : args) {
+                sub_args.add((PExpr)visit(arg));
+            }
+            subs.add(ConvertVisitor.f.Data(sub_args));
+            return ConvertVisitor.f.Other(node, subs);
+        }
     }
     
     @Override
