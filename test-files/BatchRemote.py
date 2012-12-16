@@ -1,5 +1,5 @@
 import socket
-import ast
+from com.xhaus.jyson import JysonCodec as json
 
 class BatchRemote :
     
@@ -11,16 +11,27 @@ class BatchRemote :
     def execute(self, expr, forest) :
         try :
             self.sock.connect((self.HOST, self.PORT))
-            self.sock.send(expr + "\n")
-            received = self.sock.recv(4096)
+            #self.sock.sendall(expr + "\n")
+            #self.sock.shutdown(socket.SHUT_WR)
+            #received = self.sock.recv(4096)
+            f = self.sock.makefile()
+            f.write(json.dumps(forest) + "\n")
+            f.write(str(expr) + "\n")
+            f.flush()
+            header = f.readline()
+            received = f.readline()
+            print "Header " + str(header)
             print "Received " + str(received)
         finally :
             self.sock.close()
         
         print expr
-        received = ast.literal_eval(received)
-        print type(received)
-        return received # Return the dictionary
+        # Possible no dictionary received, so hold off on loading
+        if received :
+            received = json.loads(received)
+        else :
+            received = {}
+        return received     # Return the dictionary
     
     def Var(self, name) :
         return name
@@ -53,10 +64,13 @@ class BatchRemote :
         return "for (" + str(var) + " in " + str(collection) + ") {" + body + "}"
     
     def Call(self, target, method, args) :
-        return target + "." + method + "(" + ','.join(args) + ")"
+        return target + "." + method + "(" + ','.join(map(str, args)) + ")"
     
     def Out(self, location, expression) :
         return "OUTPUT(" + '"' + location + '",' + str(expression) + ")"
+    
+    def In(self, location) :
+        return "INPUT(" + '"' + location + '")'
     
     def Skip(self) :
         return "skip"
