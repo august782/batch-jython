@@ -13,6 +13,8 @@ import java.util.Vector;
 import org.python.antlr.adapter.AstAdapters;
 import org.python.core.AstList;
 
+import org.python.antlr.ast.arguments;
+
 import org.python.antlr.ParseException;
 import org.python.antlr.PythonTree;
 import org.python.antlr.Visitor;
@@ -72,6 +74,8 @@ import org.python.antlr.ast.comprehension;
 import org.python.antlr.ast.expr_contextType;
 import org.python.antlr.ast.keyword;
 import org.python.antlr.ast.operatorType;
+import org.python.antlr.ast.unaryopType;
+import org.python.antlr.ast.boolopType;
 import org.python.antlr.base.expr;
 import org.python.antlr.base.mod;
 import org.python.antlr.base.stmt;
@@ -108,25 +112,17 @@ import batch.Op;
 
 public class ConvertVisitor extends Visitor {
     
-    private static final java.util.Map<operatorType, Op> operators = new java.util.HashMap<operatorType, Op>();
+    protected static final java.util.Map<operatorType, Op> binOperators = new java.util.HashMap<operatorType, Op>();
+    protected static final java.util.Map<boolopType, Op> boolOperators = new java.util.HashMap<boolopType, Op>();
+    protected static final java.util.Map<cmpopType, Op> compare = new java.util.HashMap<cmpopType, Op>();
+    protected static final java.util.Map<unaryopType, Op> unaryOperators = new java.util.HashMap<unaryopType, Op>();
     static {
-        operators.put(operatorType.UNDEFINED, null);
-        operators.put(operatorType.Add, Op.ADD);
-        operators.put(operatorType.Sub, Op.SUB);
-        operators.put(operatorType.Mult, Op.MUL);
-        operators.put(operatorType.Div, Op.DIV);
-        operators.put(operatorType.Mod, Op.MOD);
-        //operators.put(operatorType.Pow, Op.);
-        //operators.put(operatorType.LShift, "<<");
-        //operators.put(operatorType.RShift, ">>");
-        //operators.put(operatorType.BitOr, "|");
-        //operators.put(operatorType.BitXor, "^");
-        //operators.put(operatorType.BitAnd, "&");
-        //operators.put(operatorType.FloorDiv, "//");
-    }
-    
-    private static final java.util.Map<cmpopType, Op> compare = new java.util.HashMap<cmpopType, Op>();
-    static {
+        binOperators.put(operatorType.UNDEFINED, null);
+        binOperators.put(operatorType.Add, Op.ADD);
+        binOperators.put(operatorType.Sub, Op.SUB);
+        binOperators.put(operatorType.Mult, Op.MUL);
+        binOperators.put(operatorType.Div, Op.DIV);
+        binOperators.put(operatorType.Mod, Op.MOD);
         compare.put(cmpopType.UNDEFINED, null);
         compare.put(cmpopType.Eq, Op.EQ);
         compare.put(cmpopType.NotEq, Op.NE);
@@ -138,6 +134,17 @@ public class ConvertVisitor extends Visitor {
         //compare.put(cmpopType.IsNot, "is not");
         //compare.put(cmpopType.In, "in");
         //compare.put(cmpopType.NotIn, "not in");
+        boolOperators.put(boolopType.UNDEFINED, null);
+        boolOperators.put(boolopType.And, Op.AND);
+        boolOperators.put(boolopType.Or, Op.OR);
+        //operators.put(operatorType.Pow, Op.);
+        //operators.put(operatorType.LShift, "<<");
+        //operators.put(operatorType.RShift, ">>");
+        //operators.put(operatorType.BitOr, "|");
+        //operators.put(operatorType.BitXor, "^");
+        //operators.put(operatorType.BitAnd, "&");
+        //operators.put(operatorType.FloorDiv, "//");
+        unaryOperators.put(unaryopType.Not, Op.NOT);
     }
     
     private static CodeModel f = CodeModel.factory;
@@ -145,11 +152,13 @@ public class ConvertVisitor extends Visitor {
         CodeModel.factory.allowAllTransers = true;
     }
     
-    private java.util.List<String> locals;
-
+    protected java.util.List<String> locals;
+    private java.util.Map<String, FunctionDef> function_map;
+    
     public ConvertVisitor(java.util.List<String> locals) {
         super();
         this.locals = locals;
+        this.function_map = new java.util.HashMap<String, FunctionDef>();
     }
     
     public Object visitAll(java.util.List<stmt> body) throws Exception {
@@ -210,6 +219,19 @@ public class ConvertVisitor extends Visitor {
         }
     }
     
+    // Perhaps make function defs declared in batch scope be batch functions...
+    @Override
+    public Object visitFunctionDef(FunctionDef node) throws Exception {
+        Name nameNode = node.getInternalNameNode();
+        arguments args = node.getInternalArgs();
+        java.util.List<stmt> body = node.getInternalBody();
+        
+        String name = nameNode.getInternalId();
+        function_map.put(name, node);
+        
+        return ConvertVisitor.f.Skip(); // No real translation, just mapping the function
+    }
+    
     @Override
     public Object visitExpr(Expr node) throws Exception {
         expr value = node.getInternalValue();
@@ -226,23 +248,10 @@ public class ConvertVisitor extends Visitor {
     @Override
     public Object visitPrint(Print node) throws Exception {
         // Use the Other object...
+        // Assume internal dest and n1 cannot be changed be changed by remote server
         java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
-        if (node.getInternalDest() == null) {
-            subs.add(ConvertVisitor.f.Data(null));
-        }
-        else {
-            subs.add((PExpr)visit(node.getInternalDest()));
-        }
-        java.util.List<PExpr> values = new java.util.ArrayList<PExpr>();
         for (expr e : node.getInternalValues()) {
-            values.add((PExpr)visit(e));
-        }
-        subs.add(ConvertVisitor.f.Data(values));
-        if (node.getInternalNl().booleanValue()) {
-            subs.add(ConvertVisitor.f.Data(new Integer(1)));
-        }
-        else {
-            subs.add(ConvertVisitor.f.Data(new Integer(0)));
+            subs.add((PExpr)visit(e));
         }
         return ConvertVisitor.f.Other(node, subs);
     }
@@ -250,11 +259,9 @@ public class ConvertVisitor extends Visitor {
     @Override
     public Object visitDelete(Delete node) throws Exception {
         java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
-        java.util.List<PExpr> targets = new java.util.ArrayList<PExpr>();
         for (expr e : node.getInternalTargets()) {
-            targets.add((PExpr)visit(e));
+            subs.add((PExpr)visit(e));
         }
-        subs.add(ConvertVisitor.f.Data(targets));
         return ConvertVisitor.f.Other(node, subs);
     }
     
@@ -269,9 +276,65 @@ public class ConvertVisitor extends Visitor {
     }
     
     @Override
+    public Object visitContinue(Continue node) throws Exception {
+        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());
+    }
+    
+    @Override
     public Object visitYield(Yield node) throws Exception {
         java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
         subs.add((PExpr)visit(node.getInternalValue()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitReturn(Return node) throws Exception {
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();  // The expression in the return might be remote
+        subs.add((PExpr)visit(node.getInternalValue()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitRaise(Raise node) throws Exception {
+        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());  // Assume exception type and inst cannot be remote
+    }
+    
+    @Override
+    public Object visitImport(Import node) throws Exception {
+        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());  // The names in the import node should not be remote
+    }
+    
+    @Override
+    public Object visitImportFrom(ImportFrom node) throws Exception {
+        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());  // The names in the import node should not be remote
+    }
+    
+    @Override
+    public Object visitGlobal(Global node) throws Exception {
+        // Regular visit returns null, but for this, let's make a new global, but only Name nodes
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        for (Name n : node.getInternalNameNodes()) {
+            subs.add((PExpr)visit(n));
+        }
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitExec(Exec node) throws Exception {
+        // Wrap all internal variables, not sure right now which can be remote
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visit(node.getInternalBody()));
+        subs.add((PExpr)visit(node.getInternalGlobals()));
+        subs.add((PExpr)visit(node.getInternalLocals()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitAssert(Assert node) throws Exception {
+        // Wrap all internal variables, not sure right now which can be remote
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visit(node.getInternalTest()));
+        subs.add((PExpr)visit(node.getInternalMsg()));
         return ConvertVisitor.f.Other(node, subs);
     }
     
@@ -309,6 +372,37 @@ public class ConvertVisitor extends Visitor {
         return null;    // Hopefully does not reach here...
     }
     
+    @Override
+    public Object visitTryFinally(TryFinally node) throws Exception {
+        // For this node, only the body can be remote, finally probably is not
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visitAll(node.getInternalBody()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitTryExcept(TryExcept node) throws Exception {
+        // For this node, only the body can be remtoe, handlers and except statements probably not
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visitAll(node.getInternalBody()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitSuite(Suite node) throws Exception {
+        return visitAll(node.getInternalBody());
+    }
+    
+    @Override
+    public Object visitBoolOp(BoolOp node) throws Exception {
+        boolopType op = node.getInternalOp();
+        java.util.List<PExpr> values = new java.util.ArrayList<PExpr>();
+        for (expr e : node.getInternalValues()) {
+            values.add((PExpr)visit(e));
+        }
+        return ConvertVisitor.f.Prim(ConvertVisitor.boolOperators.get(op), values);
+    }
+    
     public Object visitCompare(Compare node) throws Exception {
         expr left = node.getInternalLeft();
         java.util.List<cmpopType> ops = node.getInternalOps();
@@ -343,7 +437,17 @@ public class ConvertVisitor extends Visitor {
         java.util.List<PExpr> args = new java.util.ArrayList<PExpr>();
         args.add(leftExpr);
         args.add(rightExpr);
-        return ConvertVisitor.f.Prim(ConvertVisitor.operators.get(op), args);
+        return ConvertVisitor.f.Prim(ConvertVisitor.binOperators.get(op), args);
+    }
+    
+    @Override
+    public Object visitUnaryOp(UnaryOp node) throws Exception {
+        // For now, do not consider invert, unary add and subtract...
+        unaryopType op = node.getInternalOp();
+        java.util.List<PExpr> operands = new java.util.ArrayList<PExpr>();
+        expr operand = node.getInternalOperand();
+        operands.add((PExpr)visit(operand));
+        return ConvertVisitor.f.Prim(ConvertVisitor.unaryOperators.get(op), operands);
     }
     
     @Override
@@ -354,7 +458,7 @@ public class ConvertVisitor extends Visitor {
         java.util.List<PExpr> args = new java.util.ArrayList<PExpr>();
         args.add((PExpr)visit(target));
         args.add((PExpr)visit(value));
-        return ConvertVisitor.f.Assign((PExpr)visit(target), ConvertVisitor.f.Prim(ConvertVisitor.operators.get(op), args));
+        return ConvertVisitor.f.Assign((PExpr)visit(target), ConvertVisitor.f.Prim(ConvertVisitor.binOperators.get(op), args));
     }
     
     @Override
@@ -373,16 +477,45 @@ public class ConvertVisitor extends Visitor {
             
             return ConvertVisitor.f.Call(target, method, expr_args);
         }
-        // Case of local function, wrap into Other node
-        else {
-            java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
-            java.util.List<PExpr> sub_args = new java.util.ArrayList<PExpr>();
-            for (expr arg : args) {
-                sub_args.add((PExpr)visit(arg));
+        // Case of local function
+        else if (func instanceof Name) {
+            Name n = (Name)func;
+            // If it is a mapped batch function, need to substitute, otherwise just wrap in Other node
+            if (function_map.containsKey(n.getInternalId())) {
+                FunctionDef f = function_map.get(n.getInternalId());
+                java.util.List<expr> func_args = f.getInternalArgs().getInternalArgs();
+                java.util.Map<String, expr> params = new java.util.HashMap<String, expr>(); // Assume replacing Name node ids
+                // Assume size of argument list and paramater list are the same...
+                for (int i = 0; i < args.size(); i++) {
+                    params.put(((Name)func_args.get(i)).getInternalId(), args.get(i));
+                }
+                return new ConvertFunction(locals, params).visitAll(f.getInternalBody());
             }
-            subs.add(ConvertVisitor.f.Data(sub_args));
-            return ConvertVisitor.f.Other(node, subs);
+            else {
+                java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+                for (expr arg : args) {
+                    subs.add((PExpr)visit(arg));
+                }
+                return ConvertVisitor.f.Other(node, subs);
+            }
         }
+        else {
+            throw new Exception("Bad Call"); 
+        }
+    }
+    
+    @Override
+    public Object visitSubscript(Subscript node) throws Exception {
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visit(node.getInternalValue()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitIndex(Index node) throws Exception {
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visit(node.getInternalValue()));
+        return ConvertVisitor.f.Other(node, subs);
     }
     
     @Override
@@ -393,13 +526,72 @@ public class ConvertVisitor extends Visitor {
     }
     
     @Override
+    public Object visitTuple(Tuple node) throws Exception {
+        java.util.List<expr> elts = node.getInternalElts();
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        for (expr elt : elts) {
+            subs.add((PExpr)visit(elt));
+        }
+        return ConvertVisitor.f.Other(node, subs);   // Tuple should be Other
+    }
+    
+    @Override
     public Object visitList(List node) throws Exception {
         java.util.List<expr> elts = node.getInternalElts();
-        java.util.List converted_elts = new java.util.ArrayList();
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
         for (expr elt : elts) {
-            converted_elts.add(visit(elt));
+            subs.add((PExpr)visit(elt));
         }
-        return ConvertVisitor.f.Data(converted_elts);   // List should be Data
+        return ConvertVisitor.f.Other(node, subs);   // List should be Other
+    }
+    
+    @Override
+    public Object visitListComp(ListComp node) throws Exception {
+        // Look into this some more, make sure elt can be remote
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visit(node.getInternalElt()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitDict(Dict node) throws Exception {
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        java.util.List<PExpr> keys = new java.util.ArrayList<PExpr>();
+        for (expr k : node.getInternalKeys()) {
+            keys.add((PExpr)visit(k));
+        }
+        java.util.List<PExpr> values = new java.util.ArrayList<PExpr>();
+        for (expr v : node.getInternalValues()) {
+            values.add((PExpr)visit(v));
+        }
+        subs.add(ConvertVisitor.f.Data(new Integer(node.getInternalKeys().size())));    // First is the size of the keys list
+        subs.addAll(keys);
+        subs.add(ConvertVisitor.f.Data(new Integer(node.getInternalValues().size())));  // Next store the keys
+        subs.addAll(values);    // Then store size of values list
+        return ConvertVisitor.f.Other(node, subs);  // Finally, the values list
+    }
+    
+    @Override
+    public Object visitRepr(Repr node) throws Exception {
+        // The value is wrapped, may not be necessary...
+        java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+        subs.add((PExpr)visit(node.getInternalValue()));
+        return ConvertVisitor.f.Other(node, subs);
+    }
+    
+    @Override
+    public Object visitLambda(Lambda node) throws Exception {
+        arguments args = node.getInternalArgs();
+        expr body = node.getInternalBody();
+        
+        // Must only support one argument that is Name node, otherwise it can only be Other node, no substitutions
+        if (args.getInternalArgs().size() != 1 || !(args.getInternalArgs().get(0) instanceof Name)) {
+            return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());
+        }
+        
+        Name name = (Name)args.getInternalArgs().get(0);
+        String var = name.getInternalId();
+        return ConvertVisitor.f.Fun(var, (PExpr)visit(body));
     }
     
     @Override

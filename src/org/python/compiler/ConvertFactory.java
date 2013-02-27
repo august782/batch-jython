@@ -3,6 +3,8 @@ package org.python.compiler;
 import org.python.antlr.adapter.AstAdapters;
 import org.python.core.AstList;
 
+import org.python.antlr.ast.arguments;
+
 import org.python.antlr.ParseException;
 import org.python.antlr.PythonTree;
 import org.python.antlr.Visitor;
@@ -116,15 +118,18 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         //operators.put(operatorType.FloorDiv, "//");
     }
     
-    private String forest;
     private expr service;
-    private ConvertFactory self;    // Total hack...
+    public expr in_forest;
+    public expr out_forest;
     
-    public ConvertFactory(String forest, expr service) {
+    public ConvertFactory(expr service, String forest) {
         super();
-        this.forest = forest;
         this.service = service;
-        self = this;
+        this.in_forest = new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load));
+        this.out_forest = new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load));
+        //this.in_forest = new Attribute(service, new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load));    // Assume forest is part of the service...
+        //this.out_forest = new Attribute(service, new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load));    // Assume forest is part of the service...
+        //this.forest = new Name(new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load));
     }
     
     // Helper functions
@@ -132,7 +137,7 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         // Make mod by wrapping inside suite ??
         java.util.List<stmt> body = new java.util.ArrayList<stmt>();
         body.add(s);
-        return  new Suite(new AstList(body, AstAdapters.stmtAdapter));
+        return new Suite(new AstList(body, AstAdapters.stmtAdapter));
     }
     
     private expr gen(String method, java.util.List<expr> args) {
@@ -161,6 +166,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 
                 return gen("Var", args);
             }
+            
+            public String toString() {
+                return "(Var " + name + ")";
+            }
         };
     }
     
@@ -169,18 +178,12 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         return new Generator() {
             
             public expr generateExpr() {
-                if (value instanceof java.util.List) {
-                    java.util.List<expr> elts = new java.util.ArrayList<expr>();
-                    for (Object o : (java.util.List)value) {
-                        expr elt = (((PExpr)o).runExtra(self)).generateExpr(); // Some crazy type-casting
-                        elts.add(elt);
-                    }
-                    return new List(new AstList(elts, AstAdapters.exprAdapter), AstAdapters.expr_context2py(expr_contextType.Load));
-                }
-                else if (value instanceof Integer) {
+                // Only integers and strings for now...
+                if (value instanceof Integer) {
                     return new Num(new PyInteger(((Integer)value).intValue()));
                 }
                 else if (value instanceof String) {
+                    //return new Str(new PyString((String)("\"" + value + "\"")));
                     return new Str(new PyString((String)value));
                 }
                 else {
@@ -202,13 +205,47 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 
                 return gen("Data", args);
             }
+            
+            public String toString() {
+                return "(Data " + value.toString() + ")";
+            }
         };
     }
     
-    public Generator Fun(String var, Generator body) {return null;}
+    public Generator Fun(final String var, final Generator body) {
+        Name name = new Name(new PyString(var), AstAdapters.expr_context2py(expr_contextType.Load));    // May be load...
+        final java.util.List<expr> a = new java.util.ArrayList<expr>();
+        a.add(name);
+        
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return new Lambda(new arguments(new AstList(a, AstAdapters.exprAdapter), Py.None, Py.None, new AstList(new java.util.ArrayList<expr>())), body.generateExpr());   // Assume arguments have no extra things in it
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                java.util.List<expr> args = new java.util.ArrayList<expr>();
+                args.add(new Str(new PyString(var)));
+                args.add(body.generateRemote());
+                return gen("Fun", args);
+            }
+            
+            public String toString() {
+                return "(Fun " + var + " " + body.toString() + ")";
+            }
+        };
+    }
     
     public Generator Prim(final Op op, final java.util.List<Generator> args) {
-        PythonTree ret;
+        //PythonTree ret;
         return new Generator() {
             
             public expr generateExpr() {
@@ -256,6 +293,15 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 
                 return gen("Prim", prim_args);
             }
+            
+            public String toString() {
+                String ret = "(" + op.toString() + " ";
+                for (Generator g : args) {
+                    ret += g.toString() + " ";
+                }
+                ret += ")";
+                return ret;
+            }
         };
     }
     
@@ -280,6 +326,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 args.add(new Str(new PyString(field)));
                 
                 return gen("Prop", args);
+            }
+            
+            public String toString() {
+                return "(Prop " + base.toString() + " " + field + ")";
             }
         };
     }
@@ -323,6 +373,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 
                 return gen("Assign", args);
             }
+            
+            public String toString() {
+                return "(Assign " + op.toString() + " " + target.toString() + " " + source.toString() + ")";
+            }
         };
     }
     
@@ -357,6 +411,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
 
                 return gen("Let", args);
             }
+            
+            public String toString() {
+                return "(Let " + var.toString() + " " + expression.toString() + " " + body.toString() + ")";
+            }
         };
     }
     
@@ -383,6 +441,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 
                 return gen("If", args);
             }
+            
+            public String toString() {
+                return "(If " + condition.toString() + " " + thenExp.toString() + " " + elseExp.toString() + ")";
+            }
         };
     }
     
@@ -398,23 +460,36 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             }
             
             public stmt generateStmt() {
-                expr target = new Name(new PyString(var), AstAdapters.expr_context2py(expr_contextType.Store));
-                // Save forest name for use in case of inputs
-                String save = new String(forest);
-                forest = new String(var);
+                expr target = new Name(new PyString(var), AstAdapters.expr_context2py(expr_contextType.Store)); // Target of For has to be variable
+                java.util.List<expr> args = new java.util.ArrayList<expr>();
+                args.add(new Str(new PyString(var)));   // Argument to forest call has to be string
+                // Save forest for use in case of inputs
+                expr in_save = in_forest;
+                expr out_save = out_forest;
+                //forest = new Call(new Attribute(forest, new PyString("subforest"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
+                in_forest = new Name(new PyString(var), AstAdapters.expr_context2py(expr_contextType.Load));    // When inputting stuff, use looping variable to access stuff
+                out_forest = new Call(new Attribute(out_forest, new PyString("subforest"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
                 java.util.List<stmt> loop_body = new java.util.ArrayList<stmt>();
                 loop_body.addAll(((Suite)body.generateMod()).getInternalBody());
-                forest = new String(save);
+                in_forest = in_save;
+                out_forest = out_save;
                 return new For(target, collection.generateExpr(), new AstList(loop_body, AstAdapters.stmtAdapter), Py.None);
             }
             
             public expr generateRemote() {
                 java.util.List<expr> args = new java.util.ArrayList<expr>();
                 args.add(new Str(new PyString(var)));
+                //expr save = forest;
+                //forest = new Call(new Attribute(forest, new PyString("subforest"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
                 args.add(collection.generateRemote());
                 args.add(body.generateRemote());
+                //forest = save;
                 
                 return gen("Loop", args);
+            }
+            
+            public String toString() {
+                return "(Loop " + var + " " + collection.toString() + " " + body.toString() + ")";
             }
         };
     }
@@ -452,6 +527,15 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 
                 return gen("Call", call_args);
             }
+            
+            public String toString() {
+                String ret = "(Call " + target.toString() + " " + method  + " ";
+                for (Generator g : args) {
+                    ret += g.toString() + " ";
+                }
+                ret += ")";
+                return ret;
+            }
         };
     }
     
@@ -460,10 +544,13 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             
             public expr generateExpr() {
                 // For In, just access the given dictionary name
-                Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load));
+                
+                //Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load));
                 java.util.List<expr> args = new java.util.ArrayList<expr>();
                 args.add(new Str(new PyString(location)));
-                return new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
+                
+                //return new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
+                return new Call(new Attribute(in_forest, new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
             }
             
             public mod generateMod() {
@@ -480,6 +567,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 
                 return gen("In", args);
             }
+            
+            public String toString() {
+                return "(In " + location + ")";
+            }
         };
     }
     
@@ -488,15 +579,18 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
               
             public expr generateExpr() {
                 // For Out, store into given dictionary name
-                Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("update"), AstAdapters.expr_context2py(expr_contextType.Load));
+                //Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("update"), AstAdapters.expr_context2py(expr_contextType.Store));    // Check context...
                 java.util.List<expr> args = new java.util.ArrayList<expr>();
-                java.util.List<expr> keys = new java.util.ArrayList<expr>();
-                keys.add(new Str(new PyString(location)));
-                java.util.List<expr> values = new java.util.ArrayList<expr>();
-                values.add(expression.generateExpr());
-                Dict temp_dict = new Dict(new AstList(keys, AstAdapters.exprAdapter), new AstList(values, AstAdapters.exprAdapter));
-                args.add(temp_dict);
-                return new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
+                //java.util.List<expr> keys = new java.util.ArrayList<expr>();
+                //keys.add(new Str(new PyString(location)));
+                //java.util.List<expr> values = new java.util.ArrayList<expr>();
+                //values.add(expression.generateExpr());
+                //Dict temp_dict = new Dict(new AstList(keys, AstAdapters.exprAdapter), new AstList(values, AstAdapters.exprAdapter));
+                //args.add(temp_dict);
+                args.add(new Str(new PyString(location)));
+                args.add(expression.generateExpr());
+                //return new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
+                return new Call(new Attribute(out_forest, new PyString("update"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
             }
             
             public mod generateMod() {
@@ -512,6 +606,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 args.add(new Str(new PyString(location)));
                 args.add(expression.generateRemote());
                 return gen("Out", args);
+            }
+            
+            public String toString() {
+                return "(Out " + location + " " + expression.toString() + ")";
             }
         };
     }
@@ -538,10 +636,91 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         return Other(external, subs);
     }
     
-	public Generator Other(Object external, java.util.List<Generator> subs) {
+	public Generator Other(final Object external, final java.util.List<Generator> subs) {
         // Assume a PythonTree node was placed as the external
+        // Note: let's change the subs right here, then send it over to the visitor
+        return new Generator() { 
+            
+            public expr generateExpr() {
+                expr ret = null;
+                try {
+                    PythonTree node = (PythonTree)external;
+                    if (!(external instanceof expr)) {  // TODO: Change to exception handling later
+                        return null;
+                    }
+                    java.util.List<mod> mod_subs = new java.util.ArrayList<mod>();
+                    for (Generator g : subs) {
+                        mod_subs.add(g.generateMod());
+                    }
+                    ret = (expr)((new ConvertOther(mod_subs)).visit(node));
+                } catch (Exception e) {
+                    System.err.println("Error that should not have happened has occured");
+                    e.printStackTrace();
+                    System.exit(1); // Technically should never get here?
+                }
+                return ret;
+            }
+            
+            public mod generateMod() {
+                mod ret = null;
+                try {
+                    PythonTree node = (PythonTree)external;
+                    java.util.List<mod> mod_subs = new java.util.ArrayList<mod>();
+                    for (Generator g : subs) {
+                        mod_subs.add(g.generateMod());
+                    }
+                    if (node instanceof mod) {
+                        ret = (mod)((new ConvertOther(mod_subs)).visit(node));
+                    }
+                    else {
+                        ret = makeMod(generateStmt()); // Better check later
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error that should not have happened has occured");
+                    e.printStackTrace();
+                    System.exit(1); // Technically should never get here?
+                }
+                return ret;
+            }
+            
+            public stmt generateStmt() {
+                stmt ret = null;
+                try {
+                    PythonTree node = (PythonTree)external;
+                    if (!((node instanceof stmt) || (node instanceof expr))) {
+                        return null;    // Better exception checking later
+                    }
+                    java.util.List<mod> mod_subs = new java.util.ArrayList<mod>();
+                    for (Generator g : subs) {
+                        mod_subs.add(g.generateMod());
+                    }
+                    if (node instanceof stmt) {
+                        ret = (stmt)((new ConvertOther(mod_subs)).visit(node));
+                    }
+                    else {
+                        ret = new Expr((expr)(new ConvertOther(mod_subs)).visit(node));
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error that should not have happened has occured");
+                    e.printStackTrace();
+                    System.exit(1); // Technically should never get here?
+                }
+                return ret;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Nothing
+            }
+            
+            public String toString() {
+                return "(Other " + ((PythonTree)external).toStringTree() + ")";
+            }
+        };
+        /*
+        System.out.println("Other start");
         PythonTree node = (PythonTree)external;
-        ConvertOther visitor = new ConvertOther(subs, this);
+        System.out.println(node.toStringTree());
+        ConvertOther visitor = new ConvertOther(subs);
         Generator ret = null;
         try {
             ret = (Generator)visitor.visit(node);
@@ -550,7 +729,8 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             e.printStackTrace();
             System.exit(1); // Technically should never get here?
         }
-        return ret;
+        System.out.println("Other end");
+        return ret;*/
     }
     
 	public Generator DynamicCall(Generator target, String method, java.util.List<Generator> args) {return null;}

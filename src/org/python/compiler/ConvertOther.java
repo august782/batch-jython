@@ -108,27 +108,505 @@ import batch.Op;
 
 public class ConvertOther extends Visitor {
     
-    private java.util.List<Generator> subs;
-    private PartitionFactoryHelper<Generator> helper;
+    //private java.util.List<Generator> subs;
+    private java.util.List<mod> subs;
+    //private PartitionFactoryHelper<Generator> helper;
     
-    public ConvertOther(java.util.List<Generator> subs, PartitionFactoryHelper<Generator> helper) {
+    //public ConvertOther(java.util.List<Generator> subs, PartitionFactoryHelper<Generator> helper) {
+    public ConvertOther(java.util.List<mod> subs) {
         this.subs = subs;
-        this.helper = helper;
     }
     
     // Helper functions
-    private mod makeMod(stmt s) {
+    /*private mod makeMod(stmt s) {
         // Make mod by wrapping inside suite ??
         java.util.List<stmt> body = new java.util.ArrayList<stmt>();
         body.add(s);
-        return  new Suite(new AstList(body, AstAdapters.stmtAdapter));
+        return new Suite(new AstList(body, AstAdapters.stmtAdapter));
+    }*/
+    private expr makeExpr(mod m) {
+        return ((Expr)makeStmt(m)).getInternalValue();
+    }
+    
+    private stmt makeStmt(mod m) {
+        return ((Suite)m).getInternalBody().get(0);
     }
     // End helper functions
     
     @Override
+    public Object visitPrint(final Print node) {
+        java.util.List<expr> values = new java.util.ArrayList<expr>();
+        for (int i = 0; i < subs.size(); i++) {
+            values.add(makeExpr(subs.get(i)));
+        }
+        node.setValues(new AstList(values, AstAdapters.exprAdapter));
+        return node;
+        /*
+        return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Print
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+            
+            public String toString() {
+                String ret = "(Print ";
+                for (Generator g : subs) {
+                    ret += g.toString() + " ";
+                }
+                ret += ")";
+                return ret;
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitDelete(final Delete node) {
+        java.util.List<expr> args = new java.util.ArrayList<expr>();
+        for (int i = 0; i < subs.size(); i++) {
+            args.add(makeExpr(subs.get(i)));
+        }
+        node.setTargets(new AstList(args, AstAdapters.exprAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Delete
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitPass(final Pass node) {
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Pass
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitBreak(final Break node) {
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Break
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitContinue(final Continue node) {
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Continue
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitYield(final Yield node) {
+        //expr value = subs.get(0).generateExpr();
+        node.setValue(makeExpr(subs.get(0)));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(node);
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitReturn(final Return node) {
+        //expr value = subs.get(0).generateExpr();
+        node.setValue(makeExpr(subs.get(0)));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Return
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitRaise(final Raise node) {
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Raise
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitImport(final Import node) {
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Import
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitImportFrom(final ImportFrom node) {
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for ImportFrom
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitGlobal(final Global node) {
+        java.util.List<Name> nameNodes = new java.util.ArrayList<Name>();
+        for (int i = 0; i < subs.size(); i++) {
+            nameNodes.add((Name)(makeExpr(subs.get(i))));
+        }
+        node.setNames(new AstList(nameNodes, AstAdapters.identifierAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Global
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitExec(final Exec node) {
+        expr body = makeExpr(subs.get(0));
+        node.setBody(body);
+        expr globals = makeExpr(subs.get(1));
+        node.setGlobals(globals);
+        expr locals = makeExpr(subs.get(2));
+        node.setLocals(locals);
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Exec
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitAssert(final Assert node) {
+        expr test = makeExpr(subs.get(0));
+        node.setTest(test);
+        expr msg = makeExpr(subs.get(1));
+        node.setMsg(msg);
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for Assert
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitTryFinally(final TryFinally node) {
+        java.util.List<stmt> body = ((Suite)(subs.get(0))).getInternalBody();
+        node.setBody(new AstList(body, AstAdapters.stmtAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for TryFinally
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitTryExcept(final TryExcept node) {
+        java.util.List<stmt> body = ((Suite)(subs.get(0))).getInternalBody();
+        node.setBody(new AstList(body, AstAdapters.stmtAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for TryExcept
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitWhile(final While node) {
+        expr test = makeExpr(subs.get(0));
+        java.util.List<stmt> body = ((Suite)subs.get(1)).getInternalBody();
+        java.util.List<stmt> orelse = ((Suite)subs.get(2)).getInternalBody();
+        node.setTest(test);
+        node.setBody(new AstList(body, AstAdapters.stmtAdapter));
+        node.setOrelse(new AstList(orelse, AstAdapters.stmtAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return null;    // Cannot return expr for While
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return node;
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
     public Object visitCall(final Call node) {
-        java.util.List<expr> args = ((List)(subs.get(0).generateExpr())).getInternalElts();
+        java.util.List<expr> args = new java.util.ArrayList<expr>();
+        for (int i = 0; i < subs.size(); i++) {
+            args.add(makeExpr(subs.get(i)));
+        }
         node.setArgs(new AstList(args, AstAdapters.exprAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitSubscript(final Subscript node) {
+        expr value = makeExpr(subs.get(0));
+        node.setValue(value);
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    /*
+    @Override
+    public Object visitIndex(final Index node) {
+        expr value = subs.get(0).generateExpr();
+        node.setValue(value);
         
         return new Generator() {
             
@@ -149,28 +627,107 @@ public class ConvertOther extends Visitor {
             }
         };
     }
+    */
+    @Override
+    public Object visitTuple(final Tuple node) {
+        java.util.List<expr> elts = new java.util.ArrayList<expr>();
+        for (int i = 0; i < subs.size(); i++) {
+            elts.add(makeExpr(subs.get(i)));
+        }
+        node.setElts(new AstList(elts, AstAdapters.exprAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
     
     @Override
-    public Object visitPrint(final Print node) {
-        expr dest = subs.get(0).generateExpr();
-        java.util.List<expr> values = ((List)(subs.get(1)).generateExpr()).getInternalElts();
-        // Fake as integer
-        Integer temp_nl = new Integer(((PyInteger)((Num)(subs.get(2)).generateExpr()).getInternalN()).getValue());
-        PyObject nl;
-        if (temp_nl == 1) {
-            nl = Py.True; 
+    public Object visitList(final List node) {
+        java.util.List<expr> elts = new java.util.ArrayList<expr>();
+        for (int i = 0; i < subs.size(); i++) {
+            elts.add(makeExpr(subs.get(i)));
         }
-        else {
-            nl = Py.False;
+        node.setElts(new AstList(elts, AstAdapters.exprAdapter));
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitListComp(final ListComp node) {
+        expr elt = makeExpr(subs.get(0));
+        node.setElt(elt);
+        return node;
+        /*return new Generator() {
+            
+            public expr generateExpr() {
+                return node;
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                return null;    // Cannot remote other
+            }
+        };*/
+    }
+    
+    @Override
+    public Object visitDict(final Dict node) {
+        int keyCount = ((PyInteger)(((Num)(makeExpr(subs.get(0)))).getInternalN())).getValue();
+        java.util.List<expr> keys = new java.util.ArrayList<expr>();
+        for (int i = 1; i < keyCount+1; i++) {
+            keys.add(makeExpr(subs.get(i)));
         }
-        node.setDest(dest);
+        int valueCount = ((PyInteger)(((Num)(makeExpr(subs.get(keyCount+1)))).getInternalN())).getValue();
+        java.util.List<expr> values = new java.util.ArrayList<expr>();
+        for (int i = keyCount+2; i < subs.size(); i++) {
+            values.add(makeExpr(subs.get(i)));
+        }
+        node.setKeys(new AstList(keys, AstAdapters.exprAdapter));
         node.setValues(new AstList(values, AstAdapters.exprAdapter));
-        node.setNl(nl); // Seems to need real Boolean...
-        
-        return new Generator() {
+        return node;
+        /*return new Generator() {
             
             public expr generateExpr() {
-                return null;    // Cannot return expr for Print
+                return node;
             }
             
             public mod generateMod() {
@@ -178,90 +735,21 @@ public class ConvertOther extends Visitor {
             }
             
             public stmt generateStmt() {
-                return node;
+                return new Expr(generateExpr());
             }
             
             public expr generateRemote() {
                 return null;    // Cannot remote other
             }
-        };
+        };*/
     }
     
     @Override
-    public Object visitDelete(final Delete node) {
-        java.util.List<expr> targets = ((List)(subs.get(0).generateExpr())).getInternalElts();
-        node.setTargets(new AstList(targets, AstAdapters.exprAdapter));
-        
-        return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Delete
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };
-    }
-    
-    @Override
-    public Object visitPass(final Pass node) {
-        return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Pass
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };
-    }
-    
-    @Override
-    public Object visitBreak(final Break node) {
-        return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Break
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };
-    }
-    
-    @Override
-    public Object visitYield(final Yield node) {
-        expr value = subs.get(0).generateExpr();
+    public Object visitRepr(final Repr node) {
+        expr value = makeExpr(subs.get(0));
         node.setValue(value);
-        
-        return new Generator() {
+        return node;
+        /*return new Generator() {
             
             public expr generateExpr() {
                 return node;
@@ -272,41 +760,13 @@ public class ConvertOther extends Visitor {
             }
             
             public stmt generateStmt() {
-                return new Expr(node);
+                return new Expr(generateExpr());
             }
             
             public expr generateRemote() {
                 return null;    // Cannot remote other
             }
-        };
+        };*/
     }
     
-    @Override
-    public Object visitWhile(final While node) {
-        expr test = subs.get(0).generateExpr();
-        java.util.List<stmt> body = ((Suite)subs.get(1).generateMod()).getInternalBody();
-        java.util.List<stmt> orelse = ((Suite)subs.get(2).generateMod()).getInternalBody();
-        node.setTest(test);
-        node.setBody(new AstList(body, AstAdapters.stmtAdapter));
-        node.setOrelse(new AstList(orelse, AstAdapters.stmtAdapter));
-        
-        return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for While
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };
-    }
 }
