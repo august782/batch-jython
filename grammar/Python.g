@@ -1624,6 +1624,12 @@ power
                   actions.recurseSetContext($etype, expr_contextType.Load);
                   if (o instanceof Call) {
                       Call c = (Call)o;
+                      if ($etype instanceof Name) {
+                        Name n = (Name)$etype;
+                        if (n.isBatch()) {
+                          c.setBatch(true);
+                        }
+                      }
                       c.setFunc((PyObject)$etype);
                       $etype = c;
                   } else if (o instanceof Subscript) {
@@ -1705,6 +1711,10 @@ atom
      | NAME
        {
            etype = new Name($NAME, $NAME.text, $expr::ctype);
+       }
+     | REMOTE NAME
+       {
+           etype = new Name($NAME, $NAME.text, $expr::ctype, true);
        }
      | INT
        {
@@ -2126,6 +2136,7 @@ WHILE     : 'while' ;
 WITH      : 'with' ;
 YIELD     : 'yield' ;
 BATCH     : 'mybatch' ;
+REMOTE    : 'remote' ;
 
 LPAREN    : '(' {implicitLineJoiningLevel++;} ;
 
