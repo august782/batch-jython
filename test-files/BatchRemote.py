@@ -3,10 +3,12 @@ from com.xhaus.jyson import JysonCodec as json
 
 from Forest import Forest
 
+import BatchObjects
+
 class BatchRemote(object) :
     
     def __init__(self) :
-       self.HOST = 'localhost'
+       self.HOST = 'smarmy-pirate.cs.utexas.edu'
        self.PORT = 9825
        self.ops = {'ADD':'+', 'SUB':'-', 'MUL':'*', 'DIV':'/', 'EQ':'==', 'NOTEQ':'!=', 'LT':'<', 'LTE':'<=', 'GT':'>', 'GTE':'>=', 'AND':'&&', 'OR':'||', 'NOT':'!'}
     
@@ -15,16 +17,15 @@ class BatchRemote(object) :
     
     def execute(self, expr, forest) :
         try :
+            print str(expr)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self.HOST, self.PORT))
-            #self.sock.sendall(expr + "\n")
-            #self.sock.shutdown(socket.SHUT_WR)
-            #received = self.sock.recv(4096)
             f = sock.makefile()
-            #print forest.toDict()
             f.write(str(expr) + "\n")
+            f.write("\n")
+            #print forest.toDict()
+            f.write("Batch 1.0 JSON 1.0\n")
             f.write(json.dumps(forest.toDict()) + "\n")
-            #print str(expr)
             f.flush()
             header = f.readline()
             received = f.readline()
@@ -43,6 +44,45 @@ class BatchRemote(object) :
         #print str(new_forest)
         return new_forest     # Return the forest
     
+    def Var(self, name) :
+        return BatchObjects.Var(name)
+    
+    def Data(self, x) :
+        return BatchObjects.Data(x)
+    
+    def Fun(self, var, body) :
+        return BatchObjects.Fun(var, body)
+    
+    def Prim(self, op, args) :
+        return BatchObjects.Prim(op, args)
+    
+    def Prop(self, base, field) :
+        return BatchObjects.Prop(base, field)
+    
+    def Assign(self, op, target, source) :
+        return BatchObjects.Assign(op, target, source)
+    
+    def Let(self, var, expression, body) :
+        return BatchObjects.Let(var, expression, body)
+    
+    def If(self, condition, thenExp, elseExp) :
+        return BatchObjects.If(condition, thenExp, body)
+    
+    def Loop(self, var, collection, body) :
+        return BatchObjects.Loop(var, collection, body)
+    
+    def Call(self, target, method, args) :
+        return BatchObjects.Call(target, method, args)
+    
+    def Out(self, location, expression) :
+        return BatchObjects.Out(location, expression)
+    
+    def In(self, location) :
+        return BatchObjects.In(location)
+    
+    def Skip(self) :
+        return BatchObjects.Skip()
+"""    
     def Var(self, name) :
         return name
     
@@ -85,4 +125,4 @@ class BatchRemote(object) :
     
     def Skip(self) :
         return "skip"
-
+"""
