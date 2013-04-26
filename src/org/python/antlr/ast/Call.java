@@ -93,6 +93,13 @@ public static final PyType TYPE = PyType.fromClass(Call.class);
         this.kwargs = AstAdapters.py2expr(kwargs);
     }
 
+    private boolean batch;
+    public boolean isBatch() {
+        return batch;
+    }
+    public void setBatch(boolean batch) {
+        this.batch = batch;
+    }
 
     private final static PyString[] fields =
     new PyString[] {new PyString("func"), new PyString("args"), new PyString("keywords"), new
@@ -140,6 +147,7 @@ public static final PyType TYPE = PyType.fromClass(Call.class);
         setKeywords(keywords);
         setStarargs(starargs);
         setKwargs(kwargs);
+        setBatch(false);
     }
 
     public Call(Token token, expr func, java.util.List<expr> args, java.util.List<keyword>
@@ -165,6 +173,7 @@ public static final PyType TYPE = PyType.fromClass(Call.class);
         addChild(starargs);
         this.kwargs = kwargs;
         addChild(kwargs);
+        this.batch = false;
     }
 
     public Call(Integer ttype, Token token, expr func, java.util.List<expr> args,
@@ -190,6 +199,7 @@ public static final PyType TYPE = PyType.fromClass(Call.class);
         addChild(starargs);
         this.kwargs = kwargs;
         addChild(kwargs);
+        this.batch = false;
     }
 
     public Call(PythonTree tree, expr func, java.util.List<expr> args, java.util.List<keyword>
@@ -215,6 +225,7 @@ public static final PyType TYPE = PyType.fromClass(Call.class);
         addChild(starargs);
         this.kwargs = kwargs;
         addChild(kwargs);
+        this.batch = false;
     }
 
     @ExposedGet(name = "repr")

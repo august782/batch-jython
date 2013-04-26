@@ -54,6 +54,10 @@ public static final PyType TYPE = PyType.fromClass(Name.class);
     public void setCtx(PyObject ctx) {
         this.ctx = AstAdapters.py2expr_context(ctx);
     }
+    private boolean batch;
+    public boolean isBatch() {
+        return batch;
+    }
 
     private final static PyString[] fields =
     new PyString[] {new PyString("id"), new PyString("ctx")};
@@ -93,24 +97,35 @@ public static final PyType TYPE = PyType.fromClass(Name.class);
     public Name(PyObject id, PyObject ctx) {
         setId(id);
         setCtx(ctx);
+        this.batch = false;
     }
 
     public Name(Token token, String id, expr_contextType ctx) {
         super(token);
         this.id = id;
         this.ctx = ctx;
+        this.batch = false;
+    }
+    
+    public Name(Token token, String id, expr_contextType ctx, boolean batch) {
+        super(token);
+        this.id = id;
+        this.ctx = ctx;
+        this.batch = batch;
     }
 
     public Name(Integer ttype, Token token, String id, expr_contextType ctx) {
         super(ttype, token);
         this.id = id;
         this.ctx = ctx;
+        this.batch = false;
     }
 
     public Name(PythonTree tree, String id, expr_contextType ctx) {
         super(tree);
         this.id = id;
         this.ctx = ctx;
+        this.batch = false;
     }
 
     @ExposedGet(name = "repr")

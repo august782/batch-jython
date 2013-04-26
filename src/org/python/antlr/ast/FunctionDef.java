@@ -84,6 +84,13 @@ public static final PyType TYPE = PyType.fromClass(FunctionDef.class);
     public void setDecorator_list(PyObject decorator_list) {
         this.decorator_list = AstAdapters.py2exprList(decorator_list);
     }
+    boolean batch;
+    public boolean isBatch() {
+        return this.batch;
+    }
+    public void setBatch(boolean batch) {
+        this.batch = batch;
+    }
 
 
     private final static PyString[] fields =
