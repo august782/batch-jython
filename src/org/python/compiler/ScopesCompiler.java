@@ -26,6 +26,9 @@ import org.python.antlr.base.stmt;
 import org.python.core.ParserFacade;
 
 import org.python.antlr.ast.Batch;
+import org.python.antlr.adapter.AstAdapters;
+import org.python.core.AstList;
+import org.python.core.PyString;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -122,6 +125,21 @@ public class ScopesCompiler extends Visitor implements ScopeConstants {
 
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
+        // If it is batch, must add scopes for all other functions to be made
+        java.util.List<expr> decorator_list = node.getInternalDecorator_list();
+        if (decorator_list.size() == 1 && ((Name)decorator_list.get(0)).getInternalId().equals("batch")) {
+            BatchFunction.makeFunction(node);
+            FunctionDef batch = BatchFunction.getFunction("batch_" + node.getInternalName());
+            if (batch != null)
+                visit(batch);
+            FunctionDef post = BatchFunction.getFunction("post_" + node.getInternalName());
+            if (post != null)
+                visit(post);
+            node.setDecorator_list(new AstList(new java.util.ArrayList<expr>(), AstAdapters.exprAdapter));  // Clear decorator list
+            node.setBatch(true);
+            node.getInternalArgs().getInternalArgs().add(new Name(new PyString("service"), AstAdapters.expr_context2py(expr_contextType.Param)));
+            node.getInternalArgs().getInternalArgs().add(new Name(new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Param)));
+        }
         def(node.getInternalName());
         ArgListCompiler ac = new ArgListCompiler();
         ac.visitArgs(node.getInternalArgs());
@@ -147,6 +165,7 @@ public class ScopesCompiler extends Visitor implements ScopeConstants {
         cur.markFromParam();
         suite(node.getInternalBody());
         endScope();
+
         return null;
     }
 

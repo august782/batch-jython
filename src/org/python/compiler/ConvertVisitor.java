@@ -153,12 +153,15 @@ public class ConvertVisitor extends Visitor {
     }
     
     protected java.util.List<String> locals;
-    private java.util.Map<String, FunctionDef> function_map;
     
-    public ConvertVisitor(java.util.List<String> locals) {
+    private expr service;
+    private expr forest;
+    
+    public ConvertVisitor(java.util.List<String> locals, expr service, expr forest) {
         super();
         this.locals = locals;
-        this.function_map = new java.util.HashMap<String, FunctionDef>();
+        this.service = service;
+        this.forest = forest;
     }
     
     public Object visitAll(java.util.List<stmt> body) throws Exception {
@@ -222,14 +225,7 @@ public class ConvertVisitor extends Visitor {
     // Perhaps make function defs declared in batch scope be batch functions...
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
-        Name nameNode = node.getInternalNameNode();
-        arguments args = node.getInternalArgs();
-        java.util.List<stmt> body = node.getInternalBody();
-        
-        String name = nameNode.getInternalId();
-        function_map.put(name, node);
-        
-        return ConvertVisitor.f.Skip(); // No real translation, just mapping the function
+        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());
     }
     
     @Override
@@ -253,7 +249,7 @@ public class ConvertVisitor extends Visitor {
         for (expr e : node.getInternalValues()) {
             subs.add((PExpr)visit(e));
         }
-        return ConvertVisitor.f.Other(node, subs);
+        return ConvertVisitor.f.Other(new Print(node.getDest(), node.getValues(), node.getNl()), subs);
     }
     
     @Override
@@ -262,46 +258,46 @@ public class ConvertVisitor extends Visitor {
         for (expr e : node.getInternalTargets()) {
             subs.add((PExpr)visit(e));
         }
-        return ConvertVisitor.f.Other(node, subs);
+        return ConvertVisitor.f.Other(new Delete(node.getTargets()), subs);
     }
     
     @Override
     public Object visitPass(Pass node) throws Exception {
-        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());
+        return ConvertVisitor.f.Other(new Pass(), new java.util.ArrayList<PExpr>());
     }
     
     @Override
     public Object visitBreak(Break node) throws Exception {
-        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());
+        return ConvertVisitor.f.Other(new Break(), new java.util.ArrayList<PExpr>());
     }
     
     @Override
     public Object visitContinue(Continue node) throws Exception {
-        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());
+        return ConvertVisitor.f.Other(new Continue(), new java.util.ArrayList<PExpr>());
     }
     
     @Override
     public Object visitYield(Yield node) throws Exception {
         java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
         subs.add((PExpr)visit(node.getInternalValue()));
-        return ConvertVisitor.f.Other(node, subs);
+        return ConvertVisitor.f.Other(new Yield(node.getValue()), subs);
     }
     
     @Override
     public Object visitReturn(Return node) throws Exception {
         java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();  // The expression in the return might be remote
         subs.add((PExpr)visit(node.getInternalValue()));
-        return ConvertVisitor.f.Other(node, subs);
+        return ConvertVisitor.f.Other(new Return(node.getValue()), subs);
     }
     
     @Override
     public Object visitRaise(Raise node) throws Exception {
-        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());  // Assume exception type and inst cannot be remote
+        return ConvertVisitor.f.Other(new Raise(node.getExceptType(), node.getInst(), node.getTback()), new java.util.ArrayList<PExpr>());  // Assume exception type and inst cannot be remote
     }
     
     @Override
     public Object visitImport(Import node) throws Exception {
-        return ConvertVisitor.f.Other(node, new java.util.ArrayList<PExpr>());  // The names in the import node should not be remote
+        return ConvertVisitor.f.Other(new Import(node.getNames()), new java.util.ArrayList<PExpr>());  // The names in the import node should not be remote
     }
     
     @Override
@@ -470,32 +466,33 @@ public class ConvertVisitor extends Visitor {
             Attribute a = (Attribute)func;
             PExpr target = (PExpr)visit(a.getInternalValue());
             String method = a.getInternalAttr();
-            ArrayList<PExpr> expr_args = new ArrayList<PExpr>();
+            java.util.List<PExpr> expr_args = new java.util.ArrayList<PExpr>();
             for (expr arg : args) {
                 expr_args.add((PExpr)visit(arg));
             }
-            
             return ConvertVisitor.f.Call(target, method, expr_args);
         }
         // Case of local function
         else if (func instanceof Name) {
             Name n = (Name)func;
-            // If it is a mapped batch function, need to substitute, otherwise just wrap in Other node
-            if (function_map.containsKey(n.getInternalId())) {
-                FunctionDef f = function_map.get(n.getInternalId());
-                java.util.List<expr> func_args = f.getInternalArgs().getInternalArgs();
-                java.util.Map<String, expr> params = new java.util.HashMap<String, expr>(); // Assume replacing Name node ids
-                // Assume size of argument list and paramater list are the same...
-                for (int i = 0; i < args.size(); i++) {
-                    params.put(((Name)func_args.get(i)).getInternalId(), args.get(i));
-                }
-                return new ConvertFunction(locals, params).visitAll(f.getInternalBody());
+            java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
+            for (expr arg : args) {
+                subs.add((PExpr)visit(arg));
+            }
+            //return ConvertVisitor.f.Other(node, subs);
+            // Check if batch
+            if (node.isBatch()) {
+                subs.add((PExpr)visit(service));    // Add extra values needed for a batch function, service and forest
+                subs.add((PExpr)visit(forest));
+                PExpr call = ConvertVisitor.f.DynamicCall(ConvertVisitor.f.Other(null), n.getInternalId(), subs);
+                java.util.List<Place> dynamicArgs = new java.util.ArrayList<Place>();
+                dynamicArgs.add(Place.REMOTE);  // For now, assume only one argument, the remote one
+                dynamicArgs.add(Place.LOCAL);
+                dynamicArgs.add(Place.LOCAL);
+                call.setExtra(new DynamicCallInfo(Place.LOCAL, dynamicArgs));
+                return call;
             }
             else {
-                java.util.List<PExpr> subs = new java.util.ArrayList<PExpr>();
-                for (expr arg : args) {
-                    subs.add((PExpr)visit(arg));
-                }
                 return ConvertVisitor.f.Other(node, subs);
             }
         }

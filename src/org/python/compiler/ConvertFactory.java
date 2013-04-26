@@ -269,7 +269,7 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                     java.util.List<stmt> body = new java.util.ArrayList<stmt>();
                     for (Generator g : args) {
                         // Just in case adding a Suite, break it apart and combine
-                        body.addAll(((Suite)g.generateMod()).getInternalBody());
+                        body.addAll(new java.util.ArrayList<stmt>(((Suite)g.generateMod()).getInternalBody()));
                     }
                     return (new Suite(new AstList(body, AstAdapters.stmtAdapter)));
                 }
@@ -733,7 +733,48 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         return ret;*/
     }
     
-	public Generator DynamicCall(Generator target, String method, java.util.List<Generator> args) {return null;}
+    public Generator DynamicCall(final Generator target, final String method, final java.util.List<Generator> args) {
+        //return null;
+        return new Generator() {
+            
+            public expr generateExpr() {
+                Name func = new Name(new PyString("post_" + method), AstAdapters.expr_context2py(expr_contextType.Load));
+                java.util.List<expr> expr_args = new java.util.ArrayList<expr>();
+                for (Generator g : args) {
+                    // The PythonTree only holds Expr type
+                    expr_args.add(g.generateExpr());
+                }
+                return new Call(func, new AstList(expr_args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None); // No such thing as keywords, starargs, or kwargs in batch language
+            }
+            
+            public mod generateMod() {
+                return makeMod(generateStmt());
+            }
+            
+            public stmt generateStmt() {
+                return new Expr(generateExpr());
+            }
+            
+            public expr generateRemote() {
+                Name func = new Name(new PyString("batch_" + method), AstAdapters.expr_context2py(expr_contextType.Load));
+                java.util.List<expr> expr_args = new java.util.ArrayList<expr>();
+                for (Generator g : args) {
+                    // The PythonTree will send remote stuff
+                    expr_args.add(g.generateRemote());
+                }
+                return new Call(func, new AstList(expr_args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None); // No such thing as keywords, starargs, or kwargs in batch language
+            }
+            
+            public String toString() {
+                String ret = "(Call " + target.toString() + " " + method  + " ";
+                for (Generator g : args) {
+                    ret += g.toString() + " ";
+                }
+                ret += ")";
+                return ret;
+            }
+        };
+    }
     
 	public Generator Mobile(String type, Object obj, Generator exp) {return null;}
 

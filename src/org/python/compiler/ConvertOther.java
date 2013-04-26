@@ -125,11 +125,19 @@ public class ConvertOther extends Visitor {
         return new Suite(new AstList(body, AstAdapters.stmtAdapter));
     }*/
     private expr makeExpr(mod m) {
-        return ((Expr)makeStmt(m)).getInternalValue();
+        Expr e = (Expr)makeStmt(m);
+        if (e == null) {    // Propogate
+            return null;
+        }
+        return e.getInternalValue();
     }
     
     private stmt makeStmt(mod m) {
-        return ((Suite)m).getInternalBody().get(0);
+        Suite s = (Suite)m;
+        if (s.getInternalBody().size() == 0) {  // Body empty?
+            return null;
+        }
+        return s.getInternalBody().get(0);
     }
     // End helper functions
     
@@ -660,7 +668,10 @@ public class ConvertOther extends Visitor {
     public Object visitList(final List node) {
         java.util.List<expr> elts = new java.util.ArrayList<expr>();
         for (int i = 0; i < subs.size(); i++) {
-            elts.add(makeExpr(subs.get(i)));
+            expr e = makeExpr(subs.get(i));
+            if (e != null) {
+                elts.add(e);
+            }
         }
         node.setElts(new AstList(elts, AstAdapters.exprAdapter));
         return node;
