@@ -147,7 +147,8 @@ public class ConvertVisitor extends Visitor {
         unaryOperators.put(unaryopType.Not, Op.NOT);
     }
     
-    private static CodeModel f = CodeModel.factory;
+    //private static CodeModel f = CodeModel.factory;
+    public static CodeModel f = CodeModel.factory;  // Terrible software engineering practice...
     static {
         CodeModel.factory.allowAllTransers = true;
     }
@@ -482,13 +483,13 @@ public class ConvertVisitor extends Visitor {
             //return ConvertVisitor.f.Other(node, subs);
             // Check if batch
             if (node.isBatch()) {
-                subs.add((PExpr)visit(service));    // Add extra values needed for a batch function, service and forest
-                subs.add((PExpr)visit(forest));
-                PExpr call = ConvertVisitor.f.DynamicCall(ConvertVisitor.f.Other(null), n.getInternalId(), subs);
+                //subs.add((PExpr)visit(service));    // Add extra values needed for a batch function, service and forest
+                //subs.add((PExpr)visit(forest));
+                PExpr call = ConvertVisitor.f.DynamicCall(ConvertVisitor.f.Other(null), n.getInternalId(), subs);   // No target calls only
                 java.util.List<Place> dynamicArgs = new java.util.ArrayList<Place>();
                 dynamicArgs.add(Place.REMOTE);  // For now, assume only one argument, the remote one
-                dynamicArgs.add(Place.LOCAL);
-                dynamicArgs.add(Place.LOCAL);
+                //dynamicArgs.add(Place.LOCAL);
+                //dynamicArgs.add(Place.LOCAL);
                 call.setExtra(new DynamicCallInfo(Place.LOCAL, dynamicArgs));
                 return call;
             }

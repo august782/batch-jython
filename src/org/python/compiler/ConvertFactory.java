@@ -740,10 +740,13 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             public expr generateExpr() {
                 Name func = new Name(new PyString("post_" + method), AstAdapters.expr_context2py(expr_contextType.Load));
                 java.util.List<expr> expr_args = new java.util.ArrayList<expr>();
-                for (Generator g : args) {
+                /*for (Generator g : args) {
                     // The PythonTree only holds Expr type
                     expr_args.add(g.generateExpr());
-                }
+                }*/
+                expr_args.add(args.get(0).generateExpr());  // Only one argument for now
+                expr_args.add(service);     // In making post version, add in both service and the input forest (for receiving)
+                expr_args.add(in_forest);
                 return new Call(func, new AstList(expr_args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None); // No such thing as keywords, starargs, or kwargs in batch language
             }
             
@@ -758,10 +761,16 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             public expr generateRemote() {
                 Name func = new Name(new PyString("batch_" + method), AstAdapters.expr_context2py(expr_contextType.Load));
                 java.util.List<expr> expr_args = new java.util.ArrayList<expr>();
-                for (Generator g : args) {
+                /*for (Generator g : args) {
                     // The PythonTree will send remote stuff
                     expr_args.add(g.generateRemote());
-                }
+                }*/
+                expr_args.add(args.get(0).generateRemote());    // Only first one is remote
+                /*for (int i = 1; i < args.size(); i++) {
+                    expr_args.add(args.get(i).generateExpr());
+                }*/
+                expr_args.add(service);     // In making remote version, add in both service and the output forest (for sending)
+                expr_args.add(out_forest);
                 return new Call(func, new AstList(expr_args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None); // No such thing as keywords, starargs, or kwargs in batch language
             }
             

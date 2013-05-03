@@ -5,7 +5,8 @@ import rpyc
 
 from time import clock
 
-conn = rpyc.connect("localhost", 9981)
+conn = rpyc.connect("smarmy-pirate.cs.utexas.edu", 9981)
+"""
 log = open('rpyc.log', 'w')
 times = []
 for i in range(100) :
@@ -16,4 +17,10 @@ for i in range(100) :
     times.append(end - begin)
     log.write(str(end - begin) + "\n")
 log.write("Average: " + str(reduce(lambda x, y: x+y, times)/len(times)))
+"""
+local = []
+begin = clock()
+local.append(conn.root.getcwd())
+end = clock()
+print str(end - begin)
 

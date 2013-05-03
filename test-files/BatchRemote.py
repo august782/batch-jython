@@ -16,14 +16,15 @@ class BatchRemote(object) :
         return Forest()
     
     def execute(self, expr, forest) :
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try :
             print str(expr)
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self.HOST, self.PORT))
             f = sock.makefile()
             f.write(str(expr) + "\n")
             f.write("\n")
-            #print forest.toDict()
+            print type(forest)
+            print forest.toDict()
             f.write("Batch 1.0 JSON 1.0\n")
             f.write(json.dumps(forest.toDict()) + "\n")
             f.flush()

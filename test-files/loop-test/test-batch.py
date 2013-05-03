@@ -12,7 +12,7 @@ times = []
 for i in range(100) :
     local = []
     begin = clock()
-    mybatch ROOT in f :
+    batch ROOT in f :
         for x in ROOT.range(100) :
             local.append(x)
     end = clock()
@@ -22,7 +22,7 @@ log.write("Average: " + str(reduce(lambda x, y: x+y, times)/len(times)))
 """
 local = []
 begin = clock()
-mybatch ROOT in f :
+batch ROOT in f :
     for x in ROOT.range(1000) :
         local.append(ROOT.getcwd())
 end = clock()

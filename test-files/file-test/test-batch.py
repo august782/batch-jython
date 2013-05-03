@@ -12,7 +12,7 @@ times = []
 for i in range(100) :
     local = []
     begin = clock()
-    mybatch ROOT in f :
+    batch ROOT in f :
         for files in ROOT.getFiles(ROOT.getcwd()) :
             for file in files :
                 local.append(file)
@@ -23,7 +23,7 @@ for i in range(100) :
 log.write("Average: " + str(reduce(lambda x, y: x+y, times)/len(times)))
 """
 begin = clock()
-mybatch ROOT in f :
+batch ROOT in f :
     for files in ROOT.getFiles(ROOT.getcwd()) :
         for file in files :
             log = open('b' + file, 'w')
