@@ -2135,7 +2135,7 @@ TRY       : 'try' ;
 WHILE     : 'while' ;
 WITH      : 'with' ;
 YIELD     : 'yield' ;
-BATCH     : 'batch' ;
+BATCH     : 'mybatch' ;
 REMOTE    : 'remote' ;
 
 LPAREN    : '(' {implicitLineJoiningLevel++;} ;
