@@ -108,22 +108,13 @@ import batch.Op;
 
 public class ConvertOther extends Visitor {
     
-    //private java.util.List<Generator> subs;
     private java.util.List<mod> subs;
-    //private PartitionFactoryHelper<Generator> helper;
     
-    //public ConvertOther(java.util.List<Generator> subs, PartitionFactoryHelper<Generator> helper) {
     public ConvertOther(java.util.List<mod> subs) {
         this.subs = subs;
     }
     
     // Helper functions
-    /*private mod makeMod(stmt s) {
-        // Make mod by wrapping inside suite ??
-        java.util.List<stmt> body = new java.util.ArrayList<stmt>();
-        body.add(s);
-        return new Suite(new AstList(body, AstAdapters.stmtAdapter));
-    }*/
     private expr makeExpr(mod m) {
         Expr e = (Expr)makeStmt(m);
         if (e == null) {    // Propogate
@@ -149,34 +140,6 @@ public class ConvertOther extends Visitor {
         }
         node.setValues(new AstList(values, AstAdapters.exprAdapter));
         return node;
-        /*
-        return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Print
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-            
-            public String toString() {
-                String ret = "(Print ";
-                for (Generator g : subs) {
-                    ret += g.toString() + " ";
-                }
-                ret += ")";
-                return ret;
-            }
-        };*/
     }
     
     @Override
@@ -187,212 +150,48 @@ public class ConvertOther extends Visitor {
         }
         node.setTargets(new AstList(args, AstAdapters.exprAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Delete
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitPass(final Pass node) {
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Pass
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitBreak(final Break node) {
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Break
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitContinue(final Continue node) {
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Continue
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitYield(final Yield node) {
-        //expr value = subs.get(0).generateExpr();
         node.setValue(makeExpr(subs.get(0)));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(node);
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitReturn(final Return node) {
-        //expr value = subs.get(0).generateExpr();
         node.setValue(makeExpr(subs.get(0)));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Return
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitRaise(final Raise node) {
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Raise
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitImport(final Import node) {
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Import
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
     public Object visitImportFrom(final ImportFrom node) {
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for ImportFrom
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -403,24 +202,6 @@ public class ConvertOther extends Visitor {
         }
         node.setNames(new AstList(nameNodes, AstAdapters.identifierAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Global
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -432,24 +213,6 @@ public class ConvertOther extends Visitor {
         expr locals = makeExpr(subs.get(2));
         node.setLocals(locals);
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Exec
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -459,24 +222,6 @@ public class ConvertOther extends Visitor {
         expr msg = makeExpr(subs.get(1));
         node.setMsg(msg);
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for Assert
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -484,24 +229,6 @@ public class ConvertOther extends Visitor {
         java.util.List<stmt> body = ((Suite)(subs.get(0))).getInternalBody();
         node.setBody(new AstList(body, AstAdapters.stmtAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for TryFinally
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -509,24 +236,6 @@ public class ConvertOther extends Visitor {
         java.util.List<stmt> body = ((Suite)(subs.get(0))).getInternalBody();
         node.setBody(new AstList(body, AstAdapters.stmtAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for TryExcept
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -538,24 +247,6 @@ public class ConvertOther extends Visitor {
         node.setBody(new AstList(body, AstAdapters.stmtAdapter));
         node.setOrelse(new AstList(orelse, AstAdapters.stmtAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return null;    // Cannot return expr for While
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return node;
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -566,24 +257,6 @@ public class ConvertOther extends Visitor {
         }
         node.setArgs(new AstList(args, AstAdapters.exprAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(generateExpr());
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -591,24 +264,6 @@ public class ConvertOther extends Visitor {
         expr value = makeExpr(subs.get(0));
         node.setValue(value);
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(generateExpr());
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     /*
     @Override
@@ -644,24 +299,6 @@ public class ConvertOther extends Visitor {
         }
         node.setElts(new AstList(elts, AstAdapters.exprAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(generateExpr());
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -675,24 +312,6 @@ public class ConvertOther extends Visitor {
         }
         node.setElts(new AstList(elts, AstAdapters.exprAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(generateExpr());
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -700,24 +319,6 @@ public class ConvertOther extends Visitor {
         expr elt = makeExpr(subs.get(0));
         node.setElt(elt);
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(generateExpr());
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -735,24 +336,6 @@ public class ConvertOther extends Visitor {
         node.setKeys(new AstList(keys, AstAdapters.exprAdapter));
         node.setValues(new AstList(values, AstAdapters.exprAdapter));
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(generateExpr());
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
     @Override
@@ -760,24 +343,6 @@ public class ConvertOther extends Visitor {
         expr value = makeExpr(subs.get(0));
         node.setValue(value);
         return node;
-        /*return new Generator() {
-            
-            public expr generateExpr() {
-                return node;
-            }
-            
-            public mod generateMod() {
-                return makeMod(generateStmt());
-            }
-            
-            public stmt generateStmt() {
-                return new Expr(generateExpr());
-            }
-            
-            public expr generateRemote() {
-                return null;    // Cannot remote other
-            }
-        };*/
     }
     
 }

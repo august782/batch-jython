@@ -76,7 +76,6 @@ public class BatchFunction {
         if (remote_expr != null) {
             String remote_name = ((Name)(arglist.get(0))).getInternalId();
             PExpr let = ConvertVisitor.f.Let(remote_name, (PExpr)(visitor.visit(arglist.get(0))), remote_expr);
-            //pre_remote_body.add(new Return(remote_expr.runExtra(new ConvertFactory(new Name(new PyString("service"), AstAdapters.expr_context2py(expr_contextType.Load)), "forest")).generateRemote()));
             pre_remote_body.add(new Return(let.runExtra(new ConvertFactory(new Name(new PyString("service"), AstAdapters.expr_context2py(expr_contextType.Load)), "forest")).generateRemote()));
         }
         arguments new_args = new arguments(new AstList(arglist, AstAdapters.exprAdapter), null, null, new AstList(new java.util.ArrayList<expr>(), AstAdapters.exprAdapter));

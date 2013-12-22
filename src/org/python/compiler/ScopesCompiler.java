@@ -127,7 +127,7 @@ public class ScopesCompiler extends Visitor implements ScopeConstants {
     public Object visitFunctionDef(FunctionDef node) throws Exception {
         // If it is batch, must add scopes for all other functions to be made
         java.util.List<expr> decorator_list = node.getInternalDecorator_list();
-        if (decorator_list.size() == 1 && decorator_list.get(0) instanceof Name && ((Name)decorator_list.get(0)).getInternalId().equals("batch")) {
+        if (decorator_list.size() == 1 && decorator_list.get(0) instanceof Name && ((Name)decorator_list.get(0)).getInternalId().equals("rbi")) {
             BatchFunction.makeFunction(node);
             FunctionDef batch = BatchFunction.getFunction("batch_" + node.getInternalName());
             if (batch != null)

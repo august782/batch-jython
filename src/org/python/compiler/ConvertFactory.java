@@ -109,6 +109,9 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         operators.put(Op.MUL, operatorType.Mult);
         operators.put(Op.DIV, operatorType.Div);
         operators.put(Op.MOD, operatorType.Mod);
+        
+        // These operations have yet to be done...
+
         //operators.put(operatorType.Pow, Op.);
         //operators.put(operatorType.LShift, "<<");
         //operators.put(operatorType.RShift, ">>");
@@ -127,9 +130,6 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         this.service = service;
         this.in_forest = new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load));
         this.out_forest = new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load));
-        //this.in_forest = new Attribute(service, new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load));    // Assume forest is part of the service...
-        //this.out_forest = new Attribute(service, new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load));    // Assume forest is part of the service...
-        //this.forest = new Name(new PyString("forest"), AstAdapters.expr_context2py(expr_contextType.Load));
     }
     
     // Helper functions
@@ -183,7 +183,6 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                     return new Num(new PyInteger(((Integer)value).intValue()));
                 }
                 else if (value instanceof String) {
-                    //return new Str(new PyString((String)("\"" + value + "\"")));
                     return new Str(new PyString((String)value));
                 }
                 else {
@@ -245,7 +244,6 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
     }
     
     public Generator Prim(final Op op, final java.util.List<Generator> args) {
-        //PythonTree ret;
         return new Generator() {
             
             public expr generateExpr() {
@@ -466,7 +464,6 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 // Save forest for use in case of inputs
                 expr in_save = in_forest;
                 expr out_save = out_forest;
-                //forest = new Call(new Attribute(forest, new PyString("subforest"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
                 in_forest = new Name(new PyString(var), AstAdapters.expr_context2py(expr_contextType.Load));    // When inputting stuff, use looping variable to access stuff
                 out_forest = new Call(new Attribute(out_forest, new PyString("subforest"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
                 java.util.List<stmt> loop_body = new java.util.ArrayList<stmt>();
@@ -479,11 +476,8 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             public expr generateRemote() {
                 java.util.List<expr> args = new java.util.ArrayList<expr>();
                 args.add(new Str(new PyString(var)));
-                //expr save = forest;
-                //forest = new Call(new Attribute(forest, new PyString("subforest"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
                 args.add(collection.generateRemote());
                 args.add(body.generateRemote());
-                //forest = save;
                 
                 return gen("Loop", args);
             }
@@ -543,13 +537,11 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         return new Generator() {
             
             public expr generateExpr() {
-                // For In, just access the given dictionary name
+                // For In, just access the input forest
                 
-                //Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load));
                 java.util.List<expr> args = new java.util.ArrayList<expr>();
                 args.add(new Str(new PyString(location)));
                 
-                //return new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
                 return new Call(new Attribute(in_forest, new PyString("get"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
             }
             
@@ -578,18 +570,10 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
         return new Generator() {
               
             public expr generateExpr() {
-                // For Out, store into given dictionary name
-                //Attribute dict = new Attribute(new Name(new PyString(forest), AstAdapters.expr_context2py(expr_contextType.Load)), new PyString("update"), AstAdapters.expr_context2py(expr_contextType.Store));    // Check context...
+                // For Out, store into the output forest
                 java.util.List<expr> args = new java.util.ArrayList<expr>();
-                //java.util.List<expr> keys = new java.util.ArrayList<expr>();
-                //keys.add(new Str(new PyString(location)));
-                //java.util.List<expr> values = new java.util.ArrayList<expr>();
-                //values.add(expression.generateExpr());
-                //Dict temp_dict = new Dict(new AstList(keys, AstAdapters.exprAdapter), new AstList(values, AstAdapters.exprAdapter));
-                //args.add(temp_dict);
                 args.add(new Str(new PyString(location)));
                 args.add(expression.generateExpr());
-                //return new Call(dict, new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
                 return new Call(new Attribute(out_forest, new PyString("update"), AstAdapters.expr_context2py(expr_contextType.Load)), new AstList(args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None);
             }
             
@@ -716,34 +700,14 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
                 return "(Other " + ((PythonTree)external).toStringTree() + ")";
             }
         };
-        /*
-        System.out.println("Other start");
-        PythonTree node = (PythonTree)external;
-        System.out.println(node.toStringTree());
-        ConvertOther visitor = new ConvertOther(subs);
-        Generator ret = null;
-        try {
-            ret = (Generator)visitor.visit(node);
-        } catch (Exception e) {
-            System.err.println("Error that should not have happened has occured");
-            e.printStackTrace();
-            System.exit(1); // Technically should never get here?
-        }
-        System.out.println("Other end");
-        return ret;*/
     }
     
     public Generator DynamicCall(final Generator target, final String method, final java.util.List<Generator> args) {
-        //return null;
         return new Generator() {
             
             public expr generateExpr() {
                 Name func = new Name(new PyString("post_" + method), AstAdapters.expr_context2py(expr_contextType.Load));
                 java.util.List<expr> expr_args = new java.util.ArrayList<expr>();
-                /*for (Generator g : args) {
-                    // The PythonTree only holds Expr type
-                    expr_args.add(g.generateExpr());
-                }*/
                 expr_args.add(args.get(0).generateExpr());  // Only one argument for now
                 expr_args.add(service);     // In making post version, add in both service and the input forest (for receiving)
                 expr_args.add(in_forest);
@@ -761,14 +725,7 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             public expr generateRemote() {
                 Name func = new Name(new PyString("batch_" + method), AstAdapters.expr_context2py(expr_contextType.Load));
                 java.util.List<expr> expr_args = new java.util.ArrayList<expr>();
-                /*for (Generator g : args) {
-                    // The PythonTree will send remote stuff
-                    expr_args.add(g.generateRemote());
-                }*/
                 expr_args.add(args.get(0).generateRemote());    // Only first one is remote
-                /*for (int i = 1; i < args.size(); i++) {
-                    expr_args.add(args.get(i).generateExpr());
-                }*/
                 expr_args.add(service);     // In making remote version, add in both service and the output forest (for sending)
                 expr_args.add(out_forest);
                 return new Call(func, new AstList(expr_args, AstAdapters.exprAdapter), Py.None, Py.None, Py.None); // No such thing as keywords, starargs, or kwargs in batch language
@@ -784,7 +741,7 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
             }
         };
     }
-    
+
 	public Generator Mobile(String type, Object obj, Generator exp) {return null;}
 
     @Override
@@ -793,8 +750,7 @@ public class ConvertFactory extends PartitionFactoryHelper<Generator> {
     }
 
     @Override
-    public Generator setExtra(Generator exp, Object extra) {
-        //System.out.println("MISSING CASE??");
+    public Generator setExtra(Generator exp, Object extraKey, Object extra) {
         return exp;
     }
 

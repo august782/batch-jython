@@ -8,9 +8,11 @@ import org.python.antlr.base.stmt;
 
 public abstract class Generator implements ExtraInfo<Generator> {
     
+    Object extraKey;
     Object extraInfo;
     
-    public Generator setExtra(Object extraInfo) {
+    public Generator setExtra(Object extraKey, Object extraInfo) {
+        this.extraKey = extraKey;
         this.extraInfo = extraInfo;
         return this;
     }
