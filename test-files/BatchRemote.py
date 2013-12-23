@@ -8,7 +8,8 @@ import BatchObjects
 class BatchRemote(object) :
     
     def __init__(self) :
-       self.HOST = 'smarmy-pirate.cs.utexas.edu'
+       #self.HOST = 'smarmy-pirate.cs.utexas.edu'
+       self.HOST = 'localhost'
        self.PORT = 9825
        self.ops = {'ADD':'+', 'SUB':'-', 'MUL':'*', 'DIV':'/', 'EQ':'==', 'NOTEQ':'!=', 'LT':'<', 'LTE':'<=', 'GT':'>', 'GTE':'>=', 'AND':'&&', 'OR':'||', 'NOT':'!'}
     
@@ -18,16 +19,19 @@ class BatchRemote(object) :
     def execute(self, expr, forest) :
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try :
-            print str(expr)
             sock.connect((self.HOST, self.PORT))
             f = sock.makefile()
+
+            print str(expr)
             f.write(str(expr) + "\n")
             f.write("\n")
-            print type(forest)
+            f.flush()
+
+            #print type(forest)
             print forest.toDict()
             f.write("Batch 1.0 JSON 1.0\n")
             f.write(json.dumps(forest.toDict()) + "\n")
-            f.flush()
+
             header = f.readline()
             received = f.readline()
             #print "Header " + str(header)
@@ -67,7 +71,7 @@ class BatchRemote(object) :
         return BatchObjects.Let(var, expression, body)
     
     def If(self, condition, thenExp, elseExp) :
-        return BatchObjects.If(condition, thenExp, body)
+        return BatchObjects.If(condition, thenExp, elseExp)
     
     def Loop(self, var, collection, body) :
         return BatchObjects.Loop(var, collection, body)

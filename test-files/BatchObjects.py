@@ -65,7 +65,7 @@ class If(object) :
         self.elseExp = elseExp
     
     def __str__(self) :
-        return "if (" + str(self.condition) + ") {" + str(thenExp) + "} else {" + str(self.elseExp) + "}"
+        return "if (" + str(self.condition) + ") {" + str(self.thenExp) + "} else {" + str(self.elseExp) + "}"
 
 class Loop(object) :
     def __init__(self, var, collection, body) :
